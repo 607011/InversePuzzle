@@ -1,120 +1,8 @@
 "use strict";
 
-// ---------- Color model ----------
-// Each base pigment is added channel-wise and clamped to 0-255 ("Licht"-Mischung).
-const PIGMENTS = {
-  red:   { r: 235, g: 45,  b: 45  },
-  green: { r: 60,  g: 210, b: 60  },
-  blue:  { r: 45,  g: 70,  b: 235 },
-};
-
-function addColors(colors) {
-  if (colors.length === 0) return null;
-  const sum = { r: 0, g: 0, b: 0 };
-  for (const c of colors) {
-    sum.r += c.r;
-    sum.g += c.g;
-    sum.b += c.b;
-  }
-  return {
-    r: Math.min(255, sum.r),
-    g: Math.min(255, sum.g),
-    b: Math.min(255, sum.b),
-  };
-}
-
-function colorsEqual(a, b) {
-  if (a === null || b === null) return a === b;
-  return a.r === b.r && a.g === b.g && a.b === b.b;
-}
-
-function cssColor(c) {
-  return `rgb(${c.r}, ${c.g}, ${c.b})`;
-}
-
-// ---------- Level definition ----------
-// Grid coordinates: col = x (dx), row = y (dy). Grid is exactly the target's bounding box,
-// so a solved puzzle covers every cell with exactly the right combination of pigments.
-const GRID_COLS = 3;
-const GRID_ROWS = 2;
-
-// Piece shapes as relative {dx, dy} cell lists, all cells of a piece share one pigment.
-const PIECE_DEFS = [
-  {
-    id: "green-piece",
-    color: "green",
-    cells: [
-      { dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 2, dy: 0 },
-      { dx: 1, dy: 1 }, { dx: 2, dy: 1 },
-    ],
-  },
-  {
-    id: "red-piece",
-    color: "red",
-    cells: [
-      { dx: 0, dy: 0 }, { dx: 1, dy: 0 },
-    ],
-  },
-  {
-    id: "blue-piece",
-    color: "blue",
-    cells: [
-      { dx: 0, dy: 0 },
-    ],
-  },
-];
-
-// Target: computed once from the "solution" placement (col, row) of each piece,
-// purely so the level data stays in one place and stays consistent by construction.
-const SOLUTION = {
-  "green-piece": { col: 0, row: 0 },
-  "red-piece": { col: 0, row: 1 },
-  "blue-piece": { col: 0, row: 0 },
-};
-
-function buildTarget() {
-  const target = Array.from({ length: GRID_ROWS }, () => Array(GRID_COLS).fill(null));
-  const contributions = Array.from({ length: GRID_ROWS }, () => Array.from({ length: GRID_COLS }, () => []));
-  for (const def of PIECE_DEFS) {
-    const origin = SOLUTION[def.id];
-    for (const cell of def.cells) {
-      const col = origin.col + cell.dx;
-      const row = origin.row + cell.dy;
-      contributions[row][col].push(PIGMENTS[def.color]);
-    }
-  }
-  for (let row = 0; row < GRID_ROWS; row++) {
-    for (let col = 0; col < GRID_COLS; col++) {
-      target[row][col] = addColors(contributions[row][col]);
-    }
-  }
-  return target;
-}
-
-const TARGET = buildTarget();
-
-// ---------- Piece transforms ----------
-function normalize(cells) {
-  const minDx = Math.min(...cells.map((c) => c.dx));
-  const minDy = Math.min(...cells.map((c) => c.dy));
-  return cells.map((c) => ({ dx: c.dx - minDx, dy: c.dy - minDy }));
-}
-
-function rotate90(cells) {
-  // (dx, dy) -> (-dy, dx)
-  return normalize(cells.map((c) => ({ dx: -c.dy, dy: c.dx })));
-}
-
-function flipHorizontal(cells) {
-  return normalize(cells.map((c) => ({ dx: -c.dx, dy: c.dy })));
-}
-
-function boundingSize(cells) {
-  return {
-    w: Math.max(...cells.map((c) => c.dx)) + 1,
-    h: Math.max(...cells.map((c) => c.dy)) + 1,
-  };
-}
+// Color model, piece transforms, and level definitions now live in levels.js (loaded
+// before this file), shared with the Node.js solver. This file only handles state,
+// rendering, and interaction.
 
 // ---------- Grid geometry (must match style.css) ----------
 const CELL_SIZE = 64;
@@ -130,14 +18,8 @@ function pieceBoxSize(cells) {
 }
 
 // ---------- Game state ----------
-const pieces = PIECE_DEFS.map((def) => ({
-  id: def.id,
-  color: def.color,
-  baseCells: def.cells,
-  cells: normalize(def.cells), // current transformed shape
-  placed: false,
-  origin: null, // { col, row } when placed
-}));
+let currentLevelIndex = 0;
+let GRID_COLS, GRID_ROWS, TARGET, pieces;
 
 let selectedPiece = null; // an unplaced tray piece selected for rotate/flip (no drag in progress)
 let dragState = null; // { piece, cells, source: 'tray'|'grid', originalCells, originalOrigin, fractionX, fractionY, ghostEl, hoverCell }
@@ -146,6 +28,7 @@ let pointerCandidate = null; // { piece, source, startX, startY, originalOrigin 
 const DRAG_THRESHOLD = 4; // px
 
 // ---------- DOM refs ----------
+const levelSelectEl = document.getElementById("level-select");
 const targetGridEl = document.getElementById("target-grid");
 const workspaceGridEl = document.getElementById("workspace-grid");
 const trayEl = document.getElementById("tray");
@@ -153,6 +36,47 @@ const statusEl = document.getElementById("status");
 const rotateBtn = document.getElementById("rotate-btn");
 const flipBtn = document.getElementById("flip-btn");
 const resetBtn = document.getElementById("reset-btn");
+
+// ---------- Level loading ----------
+function loadLevel(index) {
+  currentLevelIndex = index;
+  const level = LEVELS[index];
+  GRID_COLS = level.gridCols;
+  GRID_ROWS = level.gridRows;
+  TARGET = buildTarget(level);
+
+  pieces = level.pieces.map((def) => ({
+    id: def.id,
+    color: def.color,
+    baseCells: def.cells,
+    cells: applyStartTransform(def.cells, def.start),
+    placed: false,
+    origin: null,
+  }));
+
+  selectedPiece = null;
+  if (dragState) {
+    dragState.ghostEl.remove();
+    dragState = null;
+  }
+  pointerCandidate = null;
+
+  renderLevelSelect();
+  renderTargetGrid();
+  renderAll();
+}
+
+function renderLevelSelect() {
+  levelSelectEl.innerHTML = "";
+  LEVELS.forEach((level, i) => {
+    const btn = document.createElement("button");
+    btn.textContent = level.name;
+    btn.className = "level-btn";
+    if (i === currentLevelIndex) btn.classList.add("active");
+    btn.addEventListener("click", () => loadLevel(i));
+    levelSelectEl.appendChild(btn);
+  });
+}
 
 // ---------- Rendering ----------
 function renderTargetGrid() {
@@ -501,18 +425,7 @@ function checkWin(colors) {
 }
 
 function resetLevel() {
-  for (const piece of pieces) {
-    piece.cells = normalize(piece.baseCells);
-    piece.placed = false;
-    piece.origin = null;
-  }
-  selectedPiece = null;
-  if (dragState) {
-    dragState.ghostEl.remove();
-    dragState = null;
-  }
-  pointerCandidate = null;
-  renderAll();
+  loadLevel(currentLevelIndex);
 }
 
 document.addEventListener("keydown", (e) => {
@@ -531,5 +444,4 @@ flipBtn.addEventListener("click", () => applyTransform(flipHorizontal));
 resetBtn.addEventListener("click", resetLevel);
 
 // ---------- Init ----------
-renderTargetGrid();
-renderAll();
+loadLevel(0);
