@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inverse Puzzle</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Inverse Puzzle</h1>
+  <p class="hint">
+    Drag the pieces on top of each other so the workspace matches the target exactly.
+    Overlapping colors mix additively (Red + Green = Yellow, Green + Blue = Cyan, …).
+    A plain click (no dragging) on a piece in the tray selects it, so you can rotate/flip it.
+    While dragging, or with a piece selected: <kbd>R</kbd> rotates, <kbd>F</kbd> flips, <kbd>Esc</kbd> cancels the drag.
+  </p>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>Target</h2>
+    <div id="target-grid" class="grid"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Workspace</h2>
+    <div id="workspace-grid" class="grid"></div>
+    <p id="status" class="status"></p>
+  </section>
+
+  <section class="panel">
+    <h2>Pieces</h2>
+    <div id="tray"></div>
+    <div class="controls">
+      <button id="rotate-btn" disabled>⟳ Rotate (R)</button>
+      <button id="flip-btn" disabled>⇋ Flip (F)</button>
+      <button id="reset-btn">Reset level</button>
+    </div>
+  </section>
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>
