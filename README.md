@@ -1,5 +1,7 @@
 # Inverse Puzzle
 
+**Play the latest version:** https://607011.github.io/InversePuzzle/
+
 A puzzle concept where you overlap colored polyomino pieces to reconstruct a target pattern. Colors mix **additively** where pieces overlap (like light: Red + Green = Yellow, Green + Blue = Cyan, ...). The twist: you work backward from the target — figuring out which pieces, in which orientation and position, combine to produce exactly the colors and shape shown.
 
 ## How to play
