@@ -2,7 +2,7 @@
 
 **Play the latest version:** https://607011.github.io/Overhue/
 
-A puzzle concept where you overlap colored polyomino pieces to reconstruct a target pattern. Colors mix where pieces overlap — **additively** like light (Red + Green = Yellow, brighter the more you stack) by default, or **subtractively** like paint (Red + Green = a dark olive, darker the more you stack) in Paint mode. The twist: you work backward from the target — figuring out which pieces, in which orientation and position, combine to produce exactly the colors and shape shown.
+A puzzle concept where you overlap colored polyomino pieces to reconstruct a target pattern. Colors mix where pieces overlap — **additively** like light (Red + Green = Yellow; the same color stacked on itself gets brighter) by default, or **subtractively** like paint (Red + Green = a dark olive; the same color stacked on itself stays exactly the same, since painting a color over itself doesn't change anything) in Paint mode. The twist: you work backward from the target — figuring out which pieces, in which orientation and position, combine to produce exactly the colors and shape shown.
 
 ## How to play
 
@@ -16,7 +16,7 @@ A puzzle concept where you overlap colored polyomino pieces to reconstruct a tar
 8. Not every piece has to be used — some levels include pieces that never belong anywhere.
 9. The ☰ menu has a "Hard mode": no live color preview, and pieces can't be picked back up once dropped.
 10. Drag a level JSON file onto the Target panel to try it out — either one produced by [solver-rs](solver-rs)'s generator, or a full `levels.json` export ([export-levels.js](export-levels.js)). Loaded levels show up as dashed "custom" entries in the level picker; nothing is written back to `levels.js` — this is just for quick testing.
-11. The ☰ menu also has a "Color model" switch: **Light** (additive, the default — red + green = yellow, brighter the more you stack) or **Paint** (subtractive — red + green = a dark olive, darker the more you stack, much closer to how actual paint behaves). Each mode has its own separate level set and its own progression.
+11. The ☰ menu also has a "Color model" switch: **Light** (additive, the default — red + green = yellow, and stacking the same color on itself gets brighter) or **Paint** (subtractive — red + green = a dark olive, but stacking the *same* color on itself changes nothing, just like real paint). Each mode has its own separate level set and its own progression.
 
 ## Tech
 

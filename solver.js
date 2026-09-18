@@ -147,12 +147,39 @@ function solveLevel(level) {
   const sumR = new Int32Array(n);
   const sumG = new Int32Array(n);
   const sumB = new Int32Array(n);
-  // Subtractive state: running per-channel products, as fractions in [0, 1] (floats).
-  const prodR = new Float64Array(n).fill(1);
-  const prodG = new Float64Array(n).fill(1);
-  const prodB = new Float64Array(n).fill(1);
   const touched = new Uint8Array(n);
-  const EPSILON = 1e-9; // float slack for the subtractive prune, never for the final check
+
+  // Subtractive state: mixing is idempotent per distinct pigment (see levels.js's
+  // multiplyColors) — painting the same pigment over itself is a no-op, only a genuinely
+  // different one darkens anything further. So instead of a running product, track a
+  // per-cell reference count *per distinct pigment used anywhere in this level* — the same
+  // pigment applied twice is a no-op on that count's *presence* (0 vs >0), not its value.
+  // This is exact integer bookkeeping, no rounding/epsilon involved anywhere.
+  let pigmentList = [];
+  let touchCount = null; // Int32Array[n * pigmentList.length]
+  if (subtractive) {
+    for (const info of pieceInfos) {
+      const already = pigmentList.findIndex((c) => c.r === info.pigment.r && c.g === info.pigment.g && c.b === info.pigment.b);
+      info.pigmentIndex = already !== -1 ? already : pigmentList.push(info.pigment) - 1;
+    }
+    touchCount = new Int32Array(n * pigmentList.length);
+  }
+
+  function subtractiveColorAt(idx) {
+    let r = 1;
+    let g = 1;
+    let b = 1;
+    let any = false;
+    const base = idx * pigmentList.length;
+    for (let p = 0; p < pigmentList.length; p++) {
+      if (touchCount[base + p] === 0) continue;
+      any = true;
+      r *= pigmentList[p].r / 255;
+      g *= pigmentList[p].g / 255;
+      b *= pigmentList[p].b / 255;
+    }
+    return any ? { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) } : null;
+  }
 
   const solutions = [];
   let nodesVisited = 0;
@@ -160,24 +187,25 @@ function solveLevel(level) {
 
   const startTime = process.hrtime.bigint();
 
-  function fits(placement, pigment) {
+  function fits(placement, pieceInfo) {
     if (subtractive) {
-      const fr = pigment.r / 255;
-      const fg = pigment.g / 255;
-      const fb = pigment.b / 255;
-      // The running product is compared against the target's *rounded* channel value, so
-      // the margin has to absorb up to half a unit of rounding slack (see the final Math.
-      // round in isExactMatch/levels.js's multiplyColors) — not just float noise. Without
-      // it, a running product a fraction of a unit below the rounded target gets pruned
-      // even though it's still exactly on track to round correctly once final.
+      const p = pieceInfo.pigmentIndex;
       for (const idx of placement.indices) {
+        const base = idx * pigmentList.length;
+        if (touchCount[base + p] > 0) continue; // already present here — a true no-op
+        // Adding a genuinely new distinct pigment can only shrink each channel further (or
+        // leave it, if that channel's already 0 in this new pigment) — so hypothetically add
+        // it and check we haven't already undershot the target; more pigments later can
+        // only shrink it more, never recover it.
+        touchCount[base + p]++;
+        const after = subtractiveColorAt(idx);
+        touchCount[base + p]--;
         const t = targetFlat[idx];
-        if (t.r > 0 && prodR[idx] * fr < (t.r - 0.5) / 255 - EPSILON) return false;
-        if (t.g > 0 && prodG[idx] * fg < (t.g - 0.5) / 255 - EPSILON) return false;
-        if (t.b > 0 && prodB[idx] * fb < (t.b - 0.5) / 255 - EPSILON) return false;
+        if (after.r < t.r || after.g < t.g || after.b < t.b) return false;
       }
       return true;
     }
+    const pigment = pieceInfo.pigment;
     for (const idx of placement.indices) {
       const t = targetFlat[idx];
       if (t.r < 255 && sumR[idx] + pigment.r > t.r) return false;
@@ -187,31 +215,27 @@ function solveLevel(level) {
     return true;
   }
 
-  function apply(placement, pigment) {
+  function apply(placement, pieceInfo) {
     for (const idx of placement.indices) {
       if (subtractive) {
-        prodR[idx] *= pigment.r / 255;
-        prodG[idx] *= pigment.g / 255;
-        prodB[idx] *= pigment.b / 255;
+        touchCount[idx * pigmentList.length + pieceInfo.pigmentIndex]++;
       } else {
-        sumR[idx] += pigment.r;
-        sumG[idx] += pigment.g;
-        sumB[idx] += pigment.b;
+        sumR[idx] += pieceInfo.pigment.r;
+        sumG[idx] += pieceInfo.pigment.g;
+        sumB[idx] += pieceInfo.pigment.b;
       }
       touched[idx]++;
     }
   }
 
-  function undo(placement, pigment) {
+  function undo(placement, pieceInfo) {
     for (const idx of placement.indices) {
       if (subtractive) {
-        prodR[idx] /= pigment.r / 255;
-        prodG[idx] /= pigment.g / 255;
-        prodB[idx] /= pigment.b / 255;
+        touchCount[idx * pigmentList.length + pieceInfo.pigmentIndex]--;
       } else {
-        sumR[idx] -= pigment.r;
-        sumG[idx] -= pigment.g;
-        sumB[idx] -= pigment.b;
+        sumR[idx] -= pieceInfo.pigment.r;
+        sumG[idx] -= pieceInfo.pigment.g;
+        sumB[idx] -= pieceInfo.pigment.b;
       }
       touched[idx]--;
     }
@@ -219,12 +243,11 @@ function solveLevel(level) {
 
   function isExactMatch() {
     for (let idx = 0; idx < n; idx++) {
-      let color = null;
-      if (touched[idx] > 0) {
-        color = subtractive
-          ? { r: Math.round(prodR[idx] * 255), g: Math.round(prodG[idx] * 255), b: Math.round(prodB[idx] * 255) }
-          : { r: Math.min(255, sumR[idx]), g: Math.min(255, sumG[idx]), b: Math.min(255, sumB[idx]) };
-      }
+      const color = subtractive
+        ? subtractiveColorAt(idx)
+        : touched[idx] > 0
+        ? { r: Math.min(255, sumR[idx]), g: Math.min(255, sumG[idx]), b: Math.min(255, sumB[idx]) }
+        : null;
       if (!colorsEqual(color, targetFlat[idx])) return false;
     }
     return true;
@@ -254,12 +277,12 @@ function solveLevel(level) {
 
     // Option 2: place it at one of its precomputed valid placements.
     for (const placement of piece.placements) {
-      if (!fits(placement, piece.pigment)) continue;
-      apply(placement, piece.pigment);
+      if (!fits(placement, piece)) continue;
+      apply(placement, piece);
       chosen.push({ id: piece.id, origin: placement.origin, cells: placement.cells });
       search(pieceIndex + 1, chosen);
       chosen.pop();
-      undo(placement, piece.pigment);
+      undo(placement, piece);
       if (solutions.length >= MAX_SOLUTIONS) return;
     }
   }

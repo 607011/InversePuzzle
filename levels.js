@@ -15,10 +15,14 @@
 //
 // "subtractive" (paint/ink mixing): each pigment's channel is treated as how much of that
 // wavelength it *lets through* (0 = fully absorbed, 255 = fully reflected), so overlapping
-// pigments multiply those fractions together. This is much closer to how actual paint
-// behaves: red+green makes a dark olive/brown (not yellow), stacking a color on itself only
-// ever gets darker or stays the same (never brighter), and mixing all three primaries heads
-// toward black/mud rather than white. See PAINT_LEVELS.
+// *different* pigments multiply those fractions together — red+green makes a dark
+// olive/brown (not yellow), and mixing all three primaries heads toward black/mud rather
+// than white. Crucially, this is idempotent for the *same* pigment: painting a color over
+// itself changes nothing (real paint doesn't get darker with every identical coat — it's
+// already fully opaque/absorbing at that pigment's own characteristic level; only a
+// genuinely different pigment on top absorbs anything further). Multiplication alone isn't
+// idempotent (x*x != x), so this dedupes by exact color identity first and only multiplies
+// the *distinct* pigments present. See PAINT_LEVELS.
 function addColors(colors) {
   if (colors.length === 0) return null;
   const sum = { r: 0, g: 0, b: 0 };
@@ -36,10 +40,14 @@ function addColors(colors) {
 
 function multiplyColors(colors) {
   if (colors.length === 0) return null;
+  const distinct = [];
+  for (const c of colors) {
+    if (!distinct.some((d) => d.r === c.r && d.g === c.g && d.b === c.b)) distinct.push(c);
+  }
   let r = 1;
   let g = 1;
   let b = 1;
-  for (const c of colors) {
+  for (const c of distinct) {
     r *= c.r / 255;
     g *= c.g / 255;
     b *= c.b / 255;
@@ -2494,7 +2502,7 @@ const LEVELS = [
 // for both modes isn't meaningful. Same RED/GREEN/BLUE pigment values work well for both
 // mixing rules without retuning (verified: red+green -> a dark olive/brown, red+blue -> a
 // dark magenta, green+blue -> a dark teal, all three -> near-black, and the same pigment
-// twice only ever gets darker, never brighter).
+// any number of times over stays exactly itself — see multiplyColors above).
 const PAINT_LEVELS = [
   {
     id: "paint1",
@@ -2531,23 +2539,15 @@ const PAINT_LEVELS = [
   },
   {
     id: "paint2",
-    name: "Paint 2 · Darker, not brighter",
+    name: "Paint 2 · Same stays the same",
     gridCols: 3,
     gridRows: 2,
     blendMode: "subtractive",
     pieces: [
-      // The whole point of this one: (0,0) gets two red pieces stacked, (1,0) only one —
-      // in paint mode the doubled-up cell comes out darker/more saturated, never lighter.
       {
         id: "red-domino",
         color: "red",
         cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
-        origin: { col: 0, row: 0 },
-      },
-      {
-        id: "red-mono",
-        color: "red",
-        cells: [{ dx: 0, dy: 0 }],
         origin: { col: 0, row: 0 },
       },
       {
@@ -2562,6 +2562,21 @@ const PAINT_LEVELS = [
         cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
         origin: { col: 0, row: 1 },
         start: { flip: true },
+      },
+      // Tempting decoy: stacking this on top of red-domino "should" make it darker if paint
+      // mixed like the earlier (buggy) additive-style guess did — but paint mixing is
+      // idempotent for a repeated pigment (painting red over red changes nothing; only a
+      // genuinely *different* pigment darkens anything). Three cells long specifically so
+      // it can never sit *entirely* on the two red-only cells alone (there's nowhere on this
+      // grid it could land without also spilling onto the blue or green cell next to it) —
+      // otherwise, since adding red to an already-red cell is a no-op, a same-shaped 2-cell
+      // decoy could harmlessly overlap red-domino exactly and "solve" the level either
+      // placed or unplaced, which would be a real (if invisible) ambiguity, not a decoy.
+      {
+        id: "decoy-red-triple",
+        color: "red",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 2, dy: 0 }],
+        decoy: true,
       },
     ],
   },
