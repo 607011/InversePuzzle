@@ -120,6 +120,10 @@ kbd {
   color: var(--accent);
 }
 
+.level-btn.custom {
+  border-style: dashed;
+}
+
 main {
   display: flex;
   flex-wrap: wrap;
@@ -131,6 +135,29 @@ main {
   background: var(--panel-bg);
   border-radius: 12px;
   padding: 1rem 1.25rem 1.25rem;
+  border: 2px dashed transparent;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+#target-panel.drag-over {
+  border-color: var(--accent);
+  background: #303038;
+}
+
+.drop-hint {
+  margin: 0.6rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.drop-message {
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
+  color: var(--success);
+}
+
+.drop-message.error {
+  color: #ff6b6b;
 }
 
 .panel h2 {

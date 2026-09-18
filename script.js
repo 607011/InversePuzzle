@@ -18,6 +18,10 @@ function pieceBoxSize(cells) {
 }
 
 // ---------- Game state ----------
+// Built-in levels plus any dropped in at runtime for quick testing (see the drag-and-drop
+// section near the bottom) — kept separate from the LEVELS constant in levels.js so a
+// dropped file can never end up looking like it's part of the shipped game.
+let levelsList = LEVELS.slice();
 let currentLevelIndex = 0;
 let GRID_COLS, GRID_ROWS, TARGET, pieces;
 
@@ -51,8 +55,9 @@ const resetBtn = document.getElementById("reset-btn");
 
 // ---------- Level loading ----------
 function loadLevel(index) {
+  if (dropMessageEl) dropMessageEl.hidden = true;
   currentLevelIndex = index;
-  const level = LEVELS[index];
+  const level = levelsList[index];
   GRID_COLS = level.gridCols;
   GRID_ROWS = level.gridRows;
   TARGET = buildTarget(level);
@@ -80,10 +85,11 @@ function loadLevel(index) {
 
 function renderLevelSelect() {
   levelSelectEl.innerHTML = "";
-  LEVELS.forEach((level, i) => {
+  levelsList.forEach((level, i) => {
     const btn = document.createElement("button");
     btn.textContent = level.name;
     btn.className = "level-btn";
+    if (level.custom) btn.classList.add("custom");
     if (i === currentLevelIndex) btn.classList.add("active");
     btn.addEventListener("click", () => loadLevel(i));
     levelSelectEl.appendChild(btn);
@@ -514,6 +520,99 @@ hardModeToggle.addEventListener("change", () => {
     // ignore — setting just won't persist across reloads
   }
   updateHoverPreview(); // harmless no-op if nothing is being dragged right now
+});
+
+// ---------- Drop a level JSON onto the target panel (quick testing, e.g. for levels made
+// with solver-rs's generator) ----------
+const targetPanelEl = document.getElementById("target-panel");
+const dropMessageEl = document.getElementById("drop-message");
+
+function showDropMessage(text, isError) {
+  dropMessageEl.textContent = text;
+  dropMessageEl.hidden = false;
+  dropMessageEl.classList.toggle("error", !!isError);
+}
+
+// Accepts either one level object (the shape solver-rs's `generate` writes, or one entry
+// from levels.json) or a full export ({ pigments, levels: [...] } from export-levels.js) —
+// in which case every level in it is loaded. Returns { levels } or { error }.
+function parseDroppedLevels(data, fallbackName) {
+  const raw = Array.isArray(data.levels) ? data.levels : [data];
+  const parsed = [];
+  for (const level of raw) {
+    const error = validateLevelShape(level);
+    if (error) return { error };
+    parsed.push({
+      id: level.id || `custom-${Date.now()}-${parsed.length}`,
+      name: level.name || `Custom: ${fallbackName}`,
+      gridCols: level.gridCols,
+      gridRows: level.gridRows,
+      pieces: level.pieces,
+      custom: true,
+    });
+  }
+  return { levels: parsed };
+}
+
+function validateLevelShape(level) {
+  if (!level || typeof level !== "object") return "not a JSON object";
+  if (!Number.isInteger(level.gridCols) || level.gridCols <= 0) return "gridCols must be a positive integer";
+  if (!Number.isInteger(level.gridRows) || level.gridRows <= 0) return "gridRows must be a positive integer";
+  if (!Array.isArray(level.pieces) || level.pieces.length === 0) return "pieces must be a non-empty array";
+  for (const p of level.pieces) {
+    if (!p.id || typeof p.id !== "string") return "every piece needs a string id";
+    if (!PIGMENTS[p.color]) return `piece "${p.id}" has an unknown color "${p.color}" (known: ${Object.keys(PIGMENTS).join(", ")})`;
+    if (!Array.isArray(p.cells) || p.cells.length === 0 || !p.cells.every((c) => Number.isInteger(c.dx) && Number.isInteger(c.dy))) {
+      return `piece "${p.id}" has invalid cells`;
+    }
+    if (!p.decoy && (!p.origin || !Number.isInteger(p.origin.col) || !Number.isInteger(p.origin.row))) {
+      return `piece "${p.id}" needs an origin (or decoy: true)`;
+    }
+  }
+  return null;
+}
+
+["dragenter", "dragover"].forEach((type) => {
+  targetPanelEl.addEventListener(type, (e) => {
+    e.preventDefault();
+    targetPanelEl.classList.add("drag-over");
+  });
+});
+
+targetPanelEl.addEventListener("dragleave", () => {
+  targetPanelEl.classList.remove("drag-over");
+});
+
+targetPanelEl.addEventListener("drop", async (e) => {
+  e.preventDefault();
+  targetPanelEl.classList.remove("drag-over");
+
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+
+  let data;
+  try {
+    data = JSON.parse(await file.text());
+  } catch (err) {
+    showDropMessage(`Could not read "${file.name}" as JSON: ${err.message}`, true);
+    return;
+  }
+
+  const fallbackName = file.name.replace(/\.json$/i, "");
+  const result = parseDroppedLevels(data, fallbackName);
+  if (result.error) {
+    showDropMessage(`Invalid level in "${file.name}": ${result.error}`, true);
+    return;
+  }
+
+  levelsList = LEVELS.slice().concat(result.levels);
+  loadLevel(LEVELS.length);
+  showDropMessage(
+    result.levels.length === 1
+      ? `Loaded "${result.levels[0].name}" from ${file.name}.`
+      : `Loaded ${result.levels.length} levels from ${file.name}.`,
+    false
+  );
 });
 
 // ---------- Init ----------

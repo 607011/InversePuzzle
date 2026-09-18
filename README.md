@@ -15,6 +15,7 @@ A puzzle concept where you overlap colored polyomino pieces to reconstruct a tar
 7. Match every cell of the workspace exactly to the target grid to solve the level.
 8. Not every piece has to be used — some levels include pieces that never belong anywhere.
 9. The ☰ menu has a "Hard mode": no live color preview, and pieces can't be picked back up once dropped.
+10. Drag a level JSON file onto the Target panel to try it out — either one produced by [solver-rs](solver-rs)'s generator, or a full `levels.json` export ([export-levels.js](export-levels.js)). Loaded levels show up as dashed "custom" entries in the level picker; nothing is written back to `levels.js` — this is just for quick testing.
 
 ## Tech
 
