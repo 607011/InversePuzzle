@@ -163,6 +163,8 @@ function loadLevel(index) {
     origin: null,
   }));
 
+  undoStack = [];
+  redoStack = [];
   selectedPiece = null;
   if (dragState) {
     dragState.ghostEl.remove();
@@ -379,6 +381,57 @@ function renderAll() {
   flipBtn.disabled = !rotatable;
 }
 
+// ---------- Undo / redo ----------
+// Snapshot-based: each entry is every piece's { cells, placed, origin } at one moment. A
+// snapshot is pushed only when a gesture actually changed something (a drop that moved a
+// piece, or a rotate/flip of a selected tray piece) — a drag that ends where it started, or
+// is cancelled, leaves no entry. Disabled in Hard mode, where picking a placed piece back up
+// is deliberately not allowed and undo would sidestep that.
+let undoStack = [];
+let redoStack = [];
+
+function snapshotPieces() {
+  return pieces.map((p) => ({ cells: p.cells, placed: p.placed, origin: p.origin ? { ...p.origin } : null }));
+}
+
+function snapshotsEqual(a, b) {
+  return a.every((x, i) => {
+    const y = b[i];
+    return (
+      x.placed === y.placed &&
+      x.cells === y.cells &&
+      (x.origin === null ? y.origin === null : y.origin !== null && x.origin.col === y.origin.col && x.origin.row === y.origin.row)
+    );
+  });
+}
+
+function recordHistory(before) {
+  if (snapshotsEqual(before, snapshotPieces())) return;
+  undoStack.push(before);
+  redoStack = [];
+}
+
+function restoreSnapshot(snap) {
+  snap.forEach((s, i) => {
+    pieces[i].cells = s.cells;
+    pieces[i].placed = s.placed;
+    pieces[i].origin = s.origin ? { ...s.origin } : null;
+  });
+  renderAll();
+}
+
+function undo() {
+  if (hardMode || dragState || undoStack.length === 0) return;
+  redoStack.push(snapshotPieces());
+  restoreSnapshot(undoStack.pop());
+}
+
+function redo() {
+  if (hardMode || dragState || redoStack.length === 0) return;
+  undoStack.push(snapshotPieces());
+  restoreSnapshot(redoStack.pop());
+}
+
 // ---------- Drag and drop ----------
 function startPointerInteraction(e, piece, source) {
   if (e.button !== undefined && e.button !== 0) return; // left click / primary touch only
@@ -403,6 +456,7 @@ function beginDrag() {
   const { piece, source, sourceRect, pickupClientX, pickupClientY } = pointerCandidate;
   const originalOrigin = piece.origin ? { ...piece.origin } : null;
   const originalCells = piece.cells;
+  const historyBefore = snapshotPieces();
 
   if (source === "grid") {
     piece.placed = false;
@@ -422,6 +476,7 @@ function beginDrag() {
     cells: piece.cells,
     originalCells,
     originalOrigin,
+    historyBefore,
     fractionX,
     fractionY,
     ghostEl,
@@ -532,7 +587,7 @@ function isPointOverTray(x, y) {
 }
 
 function finishDrag() {
-  const { piece, cells, hoverCell, source, originalCells, originalOrigin, ghostEl, lastClientX, lastClientY } = dragState;
+  const { piece, cells, hoverCell, source, originalCells, originalOrigin, historyBefore, ghostEl, lastClientX, lastClientY } = dragState;
   const placement = hoverCell ? cellsForCellsAt(cells, hoverCell.col, hoverCell.row) : null;
 
   if (placement) {
@@ -555,6 +610,7 @@ function finishDrag() {
 
   ghostEl.remove();
   dragState = null;
+  if (!hardMode) recordHistory(historyBefore);
   renderAll();
 }
 
@@ -582,7 +638,9 @@ function applyTransform(transformFn) {
     updateHoverPreview();
     renderTray();
   } else if (selectedPiece) {
+    const before = snapshotPieces();
     selectedPiece.cells = transformFn(selectedPiece.cells);
+    if (!hardMode) recordHistory(before);
     renderAll();
   }
 }
@@ -612,6 +670,19 @@ function resetLevel() {
 }
 
 document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+    const k = e.key.toLowerCase();
+    if (k === "z" && !e.shiftKey) {
+      e.preventDefault();
+      undo();
+      return;
+    }
+    if (k === "y" || (k === "z" && e.shiftKey)) {
+      e.preventDefault();
+      redo();
+      return;
+    }
+  }
   if (e.key === "r" || e.key === "R") {
     applyTransform(rotate90);
   } else if (e.key === "f" || e.key === "F") {
