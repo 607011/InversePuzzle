@@ -25,6 +25,8 @@ Plain HTML/CSS/JavaScript. No frameworks, no build tools, no dependencies. Every
 - [levels.js](levels.js) — color model, piece transforms, and level definitions. Written so it also loads in Node.js unchanged (see below), which is what the solver uses.
 - [script.js](script.js) — game state, rendering, drag-and-drop interaction
 - [solver.js](solver.js) — a dev tool, not part of the game itself (see below)
+- [export-levels.js](export-levels.js) / [json-to-level.js](json-to-level.js) — bridge levels.js's data to/from JSON, for [solver-rs](solver-rs) (below)
+- [solver-rs/](solver-rs) — a faster Rust solver, plus a level **generator**, for level design (see below)
 
 ## Solver
 
@@ -36,6 +38,10 @@ node solver.js level2   # solve just one level, by id or index
 ```
 
 It reports every way to place some or all pieces (across all rotations/flips and positions, or left unplaced) that reproduces the target exactly, plus timing and how many search nodes it visited — see the comment at the top of the file for how the pruning works.
+
+## Rust solver + generator
+
+[solver-rs/](solver-rs) is a Rust port of the same solving algorithm (independently cross-checked against `solver.js` — both agree on every hand-built and generated level tried so far), plus a **level generator** that isn't practical to run purely in JS at scale. It reads/writes the same level data via a small JSON bridge (`export-levels.js` / `json-to-level.js`), so `levels.js` stays the one source of truth for what the game ships. It also computes a difficulty breakdown for any level — see [solver-rs/README.md](solver-rs/README.md) for usage, and for why the generator builds levels *forwards* (place pieces, derive the target) instead of searching backwards from a target, which is what keeps it fast.
 
 ## Current state
 

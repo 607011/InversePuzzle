@@ -1,6 +1,6 @@
 # Status
 
-Last updated: 2026-09-18 (settings menu + Hard mode added)
+Last updated: 2026-09-18 (Rust solver + generator + difficulty metric added)
 
 **Live version:** https://607011.github.io/InversePuzzle/ (GitHub Pages, serves the `main` branch root, rebuilds automatically on every push)
 
@@ -55,6 +55,32 @@ Performance approach (this was an explicit requirement, not just "make it work")
 
 Current result: all three levels have exactly one solution. Level 2's visual trap is a genuine red herring during solving, not an accidental second valid arrangement, and Level 3's two decoys are confirmed mathematically unplaceable anywhere without breaking the match (each ends up "(left in tray)" in the one solution found) — all found in well under a millisecond, visiting a couple dozen search nodes at most (these puzzles are tiny; the pruning above matters more as levels grow larger).
 
+## Rust solver + generator + difficulty metric
+
+Follow-up to a design discussion about level generation: generating a level by inventing a random target color grid and searching for a decomposition into overlapping pieces would be a genuinely hard combinatorial problem. Generating *forwards* instead — place random pieces first, derive the target from that placement (exactly how Levels 1-3 were hand-built) — is O(1) per piece and always trivially solvable, since it *is* a solution by construction. The only real search needed is validating a candidate is *good* (uniquely solvable, decoys genuinely unplaceable), and that's cheap given how fast the solver already runs on puzzles this size.
+
+Built `solver-rs/`, a separate Rust crate (never loaded by the game):
+
+- **`level.rs`**: a Rust port of levels.js's color model, transforms, and `buildTarget` — reads/writes the same JSON shape as a new bridge, `export-levels.js` (dumps `LEVELS`+`PIGMENTS` to `levels.json`) and `json-to-level.js` (the reverse: formats a generated level back into a pasteable levels.js object literal). `levels.js` stays the one source of truth for the shipped game; Rust only ever sees a JSON snapshot of it.
+- **`solver.rs`**: the same algorithm as `solver.js` (orientation dedup, non-null-cell prefiltering, most-constrained-first, monotonic pruning, "leave unplaced" for decoys) — **independently cross-checked against solver.js and found to agree exactly** (same solution count, same per-piece origin/shape) on all three hand-built levels and on generated levels, which is a real correctness signal since the two implementations don't share code.
+- **`generator.rs`**: builds real pieces via random-walk polyomino shapes placed at random valid positions (always succeeds), then decoys via mutating a random real piece's shape-or-color and rejecting any candidate that turns out to have even one locally-plausible placement, then validates the *whole* assembled level with the real solver (must be exactly 1 solution) before accepting — regenerating from scratch (bounded, default 500 attempts) otherwise. Confirmed fast in practice: e.g. 6 real pieces + 3 decoys on a 6x6 grid with a difficulty floor found a valid level in 3 attempts / 0.8ms; an intentionally-unreachable difficulty target correctly gives up after the attempt budget rather than hanging.
+- **`difficulty.rs`**: see below.
+
+Two CLI binaries: `solve` (mirrors solver.js's CLI, plus the difficulty report) and `generate` (see `solver-rs/README.md` for all flags).
+
+### Difficulty metric
+
+No single canonical "human difficulty" number exists for this puzzle type, so rather than fabricate one, the solver reports several concrete, cheaply-computed structural stats, plus one documented and explicitly tunable weighted score:
+
+- **shape-only placements**: geometric fit count per piece, ignoring color (a size/complexity proxy, the least interesting one — see "ideas" list below).
+- **locally-plausible placements**: the subset of the above that also don't overshoot any color channel checked against an *empty* board in isolation. Cheap (no combinatorics — every placement that's part of any valid solution must pass this, since sums only ever grow) yet a real signal of "could a player think this piece goes here."
+- **red herrings**: locally-plausible placements minus the one piece actually uses in the (must-be-unique) solution — how many plausible-looking wrong options exist per piece, summed.
+- **duplicate-color regions**: the general form of Level 2's trick — flood-fill the target into same-color 4-connected regions, count how many distinct colors are split across 2+ separate regions. This turned out to be the standout signal: it's the only metric that's nonzero for Level 2 among the three hand-built levels, and correctly identifies it as the hardest of the three (score 6.0 vs. 1.5 for Level 1 and 2.5 for Level 3).
+- **sneaky decoys**: how many decoys pass the locally-plausible check (vs. failing even a careless glance) — by this measure Level 3's two decoys are "cheap" (0 sneaky), since both fail on a color channel even before any other piece is considered; that's an honest, specific claim about *this* metric, not a claim that they're not visually tempting (which the game itself already achieves by giving them a matching color or shape — a different, complementary notion of trickiness this metric doesn't try to capture).
+- **score**: a weighted sum (duplicate-color regions weighted far higher than plain red herrings, since that's the one that produced a real "aha" moment when the levels were built by hand) — a starting point for sorting/filtering generated levels, not a validated model of human difficulty.
+
+A level with zero or more than one solution gets no score — that's a design bug to fix, not a difficulty level to rate.
+
 ## Open questions / decisions already made
 
 - Transform freedom: rotation **and** flipping are both allowed (chosen over move-only or rotate-only).
@@ -78,7 +104,8 @@ Discussed as a deliberate alternative to just scaling grid size / piece count, w
 
 ## Next steps (not yet started)
 
-- [ ] Try difficulty idea 2, 4, or 5 from the list above for a Level 4.
-- [ ] Decide on and build a difficulty progression once more than 2-3 levels exist.
-- [ ] Consider having the solver double as an in-game/CI sanity check (e.g. a script that fails CI if any level has zero or more-than-expected solutions), rather than only a manually-run dev tool.
-- [ ] Longer-term, evaluate procedural level generation (start from a random target, decompose into pieces) — deliberately deferred until the mechanic and difficulty levers are validated by hand-built levels. The solver's placement-enumeration logic would likely be reusable for this (generate candidate piece sets, then use the solver to confirm uniqueness).
+- [ ] Try difficulty idea 2, 4, or 5 from the list above for a Level 4 (hand-built or via `solver-rs generate`).
+- [ ] Decide on and build a difficulty progression once more than 2-3 levels exist — the new difficulty score gives a concrete axis to sort/space them along, once weights are validated against actual playtesting.
+- [ ] Consider having a solver (either implementation) double as an in-game/CI sanity check (e.g. a script that fails CI if any level in levels.js has zero or more-than-expected solutions), rather than only a manually-run dev tool.
+- [ ] Tune `difficulty.rs`'s score weights against real playtesting feedback once there are enough levels to compare against actual "this felt harder than that" judgments.
+- [ ] Consider extending the generator with idea 2 (multiple non-orthogonal pigments) or idea 4 (order-dependent blend-mode pieces) as explicit generation strategies, not just random shape/color/position.
