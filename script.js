@@ -434,10 +434,18 @@ function onPointerUp() {
   if (dragState) {
     finishDrag();
   } else if (pointerCandidate) {
-    // A click without movement: toggle rotate/flip selection (tray pieces only).
+    // A click without movement.
     const { piece, source } = pointerCandidate;
     if (source === "tray") {
+      // Toggle rotate/flip selection.
       selectedPiece = selectedPiece === piece ? null : piece;
+      renderAll();
+    } else if (source === "grid") {
+      // Send a placed piece back to the tray. (Only reachable outside hard mode — the
+      // workspace cell's pointerdown handler that starts this candidate already bails out
+      // in hard mode, so no extra check is needed here.)
+      piece.placed = false;
+      piece.origin = null;
       renderAll();
     }
   }
