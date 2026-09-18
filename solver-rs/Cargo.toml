@@ -1,8 +1,8 @@
 [package]
-name = "inverse-puzzle-solver"
+name = "overhue-solver"
 version = "0.1.0"
 edition = "2021"
-description = "Dev-only Rust solver/generator for Inverse Puzzle levels. Reads/writes the same JSON schema as ../export-levels.js; never shipped to the browser."
+description = "Dev-only Rust solver/generator for Overhue levels. Reads/writes the same JSON schema as ../export-levels.js; never shipped to the browser."
 
 [[bin]]
 name = "solve"

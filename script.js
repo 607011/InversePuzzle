@@ -32,7 +32,7 @@ let pointerCandidate = null; // { piece, source, startX, startY, originalOrigin 
 const DRAG_THRESHOLD = 4; // px
 
 // ---------- Settings ----------
-const HARD_MODE_KEY = "inverse-puzzle-hard-mode";
+const HARD_MODE_KEY = "overhue-hard-mode";
 let hardMode = false;
 try {
   hardMode = localStorage.getItem(HARD_MODE_KEY) === "true";
@@ -46,7 +46,7 @@ try {
 // Keyed by level id (not array index), so this survives levels.js being reordered or
 // having entries inserted. Dropped/custom levels (see the drag-and-drop section) are never
 // gated — they're for testing, not part of the progression.
-const SOLVED_LEVELS_KEY = "inverse-puzzle-solved-levels";
+const SOLVED_LEVELS_KEY = "overhue-solved-levels";
 let solvedLevelIds = new Set();
 try {
   const stored = JSON.parse(localStorage.getItem(SOLVED_LEVELS_KEY) || "[]");

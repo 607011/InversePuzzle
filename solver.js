@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 "use strict";
 
-// Exhaustive solution finder for Inverse Puzzle levels. Given a level's target grid and
+// Exhaustive solution finder for Overhue levels. Given a level's target grid and
 // its set of pieces, finds every way to place SOME OR ALL of the pieces (any of up to 8
 // dihedral orientations, any grid position — or left unplaced entirely) so the additive
 // color mix matches the target exactly. Leaving a piece unplaced is legal because the game

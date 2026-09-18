@@ -1,8 +1,8 @@
 # Status
 
-Last updated: 2026-09-18 (sequential level progression + 30 generated levels, 33 total)
+Last updated: 2026-09-18 (renamed the game to Overhue, repo renamed on GitHub to match)
 
-**Live version:** https://607011.github.io/InversePuzzle/ (GitHub Pages, serves the `main` branch root, rebuilds automatically on every push)
+**Live version:** https://607011.github.io/Overhue/ (GitHub Pages, serves the `main` branch root, rebuilds automatically on every push)
 
 ## Concept
 

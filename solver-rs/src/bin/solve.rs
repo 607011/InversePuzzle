@@ -5,9 +5,9 @@
 //!   solve [path/to/levels.json] [level-id-or-index]
 //! Defaults to ../levels.json (relative to the crate) and all levels.
 
-use inverse_puzzle_solver::difficulty;
-use inverse_puzzle_solver::level::{build_target, LevelsFile};
-use inverse_puzzle_solver::solver::{build_piece_infos, solve_with_piece_infos};
+use overhue_solver::difficulty;
+use overhue_solver::level::{build_target, LevelsFile};
+use overhue_solver::solver::{build_piece_infos, solve_with_piece_infos};
 use std::env;
 use std::fs;
 

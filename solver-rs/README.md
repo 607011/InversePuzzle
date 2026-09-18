@@ -1,4 +1,4 @@
-# inverse-puzzle-solver (Rust)
+# overhue-solver (Rust)
 
 A dev-only Rust port of `../solver.js`, plus a level **generator**. Never loaded by the game — this exists purely for level design/validation speed. `../levels.js` remains the single source of truth for what actually ships; this crate reads/writes the JSON schema produced by `../export-levels.js`.
 

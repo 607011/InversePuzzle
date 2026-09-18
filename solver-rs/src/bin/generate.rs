@@ -16,8 +16,8 @@
 //!     --pigments path     levels.json to read the pigment table from (default ../levels.json)
 //!     --out path          where to write the generated level JSON (default generated-level.json)
 
-use inverse_puzzle_solver::generator::{generate, GeneratorConfig};
-use inverse_puzzle_solver::level::LevelsFile;
+use overhue_solver::generator::{generate, GeneratorConfig};
+use overhue_solver::level::LevelsFile;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
