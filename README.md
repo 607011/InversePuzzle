@@ -7,7 +7,7 @@ A puzzle concept where you overlap colored polyomino pieces to reconstruct a tar
 ## How to play
 
 1. Open [index.html](index.html) directly in a browser (no build step, no server required).
-2. Pick a level from the dropdown at the top, or step through with the ◀/▶ buttons — levels unlock in order as you solve them; a level you've already solved stays open for replay.
+2. Pick a level from the dropdown at the top, or step through with the ◀/▶ buttons — levels unlock in order as you solve them; a level you've already solved stays open for replay. The page remembers the last level you played (separately for each color model, see below) and reopens it next time.
 3. Drag pieces from the tray onto the workspace grid.
 4. Rotate (`R`) or flip (`F`) a piece — either while dragging it, or after selecting it in the tray with a plain click (no drag). Drag a placed piece onto the tray to send it back (unless Hard mode is on).
 5. Overlapping pieces mix their colors additively, clamped at 255 per channel.
@@ -32,11 +32,11 @@ Plain HTML/CSS/JavaScript. No frameworks, no build tools, no dependencies. Every
 
 ## Solver
 
-`solver.js` is an exhaustive backtracking solver used while designing levels, to check that a level has exactly the solution(s) intended — in particular, that a level built around a deliberate visual trap (like Level 2) or decoy pieces (like Level 3) doesn't accidentally admit an unintended *second* real solution, or a decoy that turns out to be secretly usable.
+`solver.js` is an exhaustive backtracking solver used while designing levels, to check that a level has exactly the solution(s) intended — in particular, that a level built around a deliberate visual trap or decoy pieces (see Paint mode's levels) doesn't accidentally admit an unintended *second* real solution, or a decoy that turns out to be secretly usable.
 
 ```bash
-node solver.js          # solve every level
-node solver.js level2   # solve just one level, by id or index
+node solver.js          # solve every level (both LEVELS and PAINT_LEVELS)
+node solver.js paint2   # solve just one level, by id or index
 ```
 
 It reports every way to place some or all pieces (across all rotations/flips and positions, or left unplaced) that reproduces the target exactly, plus timing and how many search nodes it visited — see the comment at the top of the file for how the pruning works.
@@ -47,7 +47,7 @@ It reports every way to place some or all pieces (across all rotations/flips and
 
 ## Current state
 
-33 additive ("Light") levels: 3 hand-built (basics, a color-ambiguity level, a decoy-pieces level — each exploring a different way color mixing can make a puzzle genuinely harder, not just grid size or piece count) plus 30 generated with `solver-rs`, sorted by their actual computed difficulty score into a monotonic ramp. All 33 are cross-validated by both solvers to have exactly one solution.
+30 additive ("Light") levels, all generated with `solver-rs` and sorted by their actual computed difficulty score into a monotonic ramp, cross-validated by both solvers to have exactly one solution.
 
 Plus 4 subtractive ("Paint") levels — added after real playtester feedback that additive mixing doesn't match how paint actually behaves (see STATUS.md) — hand-built and validated with `solver.js`; `solver-rs` doesn't support this mode yet.
 

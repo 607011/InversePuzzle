@@ -122,130 +122,10 @@ function applyStartTransform(cells, start) {
 // out of sync with what's actually achievable. `start` (optional) scrambles a piece's
 // initial orientation in the tray, so the solution orientation must be rediscovered.
 const LEVELS = [
-  {
-    id: "level1",
-    name: "Level 1 · Basics",
-    gridCols: 3,
-    gridRows: 2,
-    pieces: [
-      {
-        id: "green-piece",
-        color: "green",
-        cells: [
-          { dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 2, dy: 0 },
-          { dx: 1, dy: 1 }, { dx: 2, dy: 1 },
-        ],
-        origin: { col: 0, row: 0 },
-      },
-      {
-        id: "red-piece",
-        color: "red",
-        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
-        origin: { col: 0, row: 1 },
-      },
-      {
-        id: "blue-piece",
-        color: "blue",
-        cells: [{ dx: 0, dy: 0 }],
-        origin: { col: 0, row: 0 },
-      },
-    ],
-  },
-  {
-    id: "level2",
-    name: "Level 2 · Look again",
-    gridCols: 4,
-    gridRows: 3,
-    pieces: [
-      // Green and red overlap at (0,0) and (1,1), producing two amber cells diagonally
-      // from each other, plus one pure-green and one pure-red cell.
-      {
-        id: "green-piece",
-        color: "green",
-        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }, { dx: 1, dy: 1 }],
-        origin: { col: 0, row: 0 },
-        start: { rotate: 2 },
-      },
-      {
-        id: "red-piece",
-        color: "red",
-        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 1, dy: 1 }],
-        origin: { col: 0, row: 0 },
-        start: { rotate: 1 },
-      },
-      // A single piece already painted with the premixed amber pigment: pixel-identical
-      // to the red+green overlap above, but it is its own separate patch elsewhere.
-      {
-        id: "amber-piece",
-        color: "amber",
-        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }],
-        origin: { col: 3, row: 0 },
-        start: { rotate: 1 },
-      },
-      {
-        id: "blue-piece",
-        color: "blue",
-        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
-        origin: { col: 2, row: 2 },
-        start: { rotate: 1 },
-      },
-    ],
-  },
-  {
-    id: "level3",
-    name: "Level 3 · Red herrings",
-    gridCols: 3,
-    gridRows: 2,
-    pieces: [
-      // The real solution: a lone blue cell, a green domino, and a red monomino that
-      // overlaps the green domino's second cell to make yellow.
-      {
-        id: "blue-piece",
-        color: "blue",
-        cells: [{ dx: 0, dy: 0 }],
-        origin: { col: 0, row: 0 },
-      },
-      {
-        id: "green-piece",
-        color: "green",
-        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
-        origin: { col: 1, row: 1 },
-        start: { rotate: 1 },
-      },
-      {
-        id: "red-piece",
-        color: "red",
-        cells: [{ dx: 0, dy: 0 }],
-        origin: { col: 2, row: 1 },
-      },
-      // Decoys: pieces that never belong anywhere. `decoy: true` excludes them from the
-      // target computation below, and the win check (script.js) only cares whether the
-      // final colors match — leaving these two in the tray, unplaced, is required to win.
-      // Same color as blue-piece, but a domino instead of a monomino: the only spot that
-      // needs blue is a single isolated cell, so this always spills onto (and ruins) a
-      // neighboring cell, whichever way it's placed.
-      {
-        id: "decoy-blue-domino",
-        color: "blue",
-        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
-        decoy: true,
-        start: { rotate: 1 },
-      },
-      // Same shape as green-piece's domino, but colored red: it fits the silhouette
-      // perfectly, yet using it instead of (or alongside) the real green piece can only
-      // ever produce the wrong color there.
-      {
-        id: "decoy-red-domino",
-        color: "red",
-        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
-        decoy: true,
-      },
-    ],
-  },
   // difficulty score (solver-rs): 1
   {
-    id: "level4",
-    name: "Level 4 · Generated",
+    id: "level1",
+    name: "Level 1 · Generated",
     gridCols: 4,
     gridRows: 3,
     pieces: [
@@ -267,8 +147,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 4.5
   {
-    id: "level5",
-    name: "Level 5 · Generated",
+    id: "level2",
+    name: "Level 2 · Generated",
     gridCols: 5,
     gridRows: 4,
     pieces: [
@@ -307,8 +187,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 5.5
   {
-    id: "level6",
-    name: "Level 6 · Generated",
+    id: "level3",
+    name: "Level 3 · Generated",
     gridCols: 4,
     gridRows: 3,
     pieces: [
@@ -337,8 +217,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 7.5
   {
-    id: "level7",
-    name: "Level 7 · Generated",
+    id: "level4",
+    name: "Level 4 · Generated",
     gridCols: 4,
     gridRows: 4,
     pieces: [
@@ -367,8 +247,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 9.5
   {
-    id: "level8",
-    name: "Level 8 · Generated",
+    id: "level5",
+    name: "Level 5 · Generated",
     gridCols: 5,
     gridRows: 4,
     pieces: [
@@ -410,8 +290,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 15
   {
-    id: "level9",
-    name: "Level 9 · Generated",
+    id: "level6",
+    name: "Level 6 · Generated",
     gridCols: 4,
     gridRows: 4,
     pieces: [
@@ -446,8 +326,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 17
   {
-    id: "level10",
-    name: "Level 10 · Generated",
+    id: "level7",
+    name: "Level 7 · Generated",
     gridCols: 5,
     gridRows: 5,
     pieces: [
@@ -495,8 +375,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 17
   {
-    id: "level11",
-    name: "Level 11 · Generated",
+    id: "level8",
+    name: "Level 8 · Generated",
     gridCols: 5,
     gridRows: 5,
     pieces: [
@@ -560,8 +440,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 21
   {
-    id: "level12",
-    name: "Level 12 · Generated",
+    id: "level9",
+    name: "Level 9 · Generated",
     gridCols: 5,
     gridRows: 4,
     pieces: [
@@ -610,8 +490,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 24.5
   {
-    id: "level13",
-    name: "Level 13 · Generated",
+    id: "level10",
+    name: "Level 10 · Generated",
     gridCols: 5,
     gridRows: 5,
     pieces: [
@@ -667,8 +547,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 25
   {
-    id: "level14",
-    name: "Level 14 · Generated",
+    id: "level11",
+    name: "Level 11 · Generated",
     gridCols: 6,
     gridRows: 5,
     pieces: [
@@ -746,8 +626,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 26
   {
-    id: "level15",
-    name: "Level 15 · Generated",
+    id: "level12",
+    name: "Level 12 · Generated",
     gridCols: 6,
     gridRows: 5,
     pieces: [
@@ -811,8 +691,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 30
   {
-    id: "level16",
-    name: "Level 16 · Generated",
+    id: "level13",
+    name: "Level 13 · Generated",
     gridCols: 6,
     gridRows: 6,
     pieces: [
@@ -890,8 +770,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 36.5
   {
-    id: "level17",
-    name: "Level 17 · Generated",
+    id: "level14",
+    name: "Level 14 · Generated",
     gridCols: 6,
     gridRows: 6,
     pieces: [
@@ -976,8 +856,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 39
   {
-    id: "level18",
-    name: "Level 18 · Generated",
+    id: "level15",
+    name: "Level 15 · Generated",
     gridCols: 6,
     gridRows: 5,
     pieces: [
@@ -1054,8 +934,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 41
   {
-    id: "level19",
-    name: "Level 19 · Generated",
+    id: "level16",
+    name: "Level 16 · Generated",
     gridCols: 6,
     gridRows: 6,
     pieces: [
@@ -1144,8 +1024,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 41.5
   {
-    id: "level20",
-    name: "Level 20 · Generated",
+    id: "level17",
+    name: "Level 17 · Generated",
     gridCols: 6,
     gridRows: 5,
     pieces: [
@@ -1215,8 +1095,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 46.5
   {
-    id: "level21",
-    name: "Level 21 · Generated",
+    id: "level18",
+    name: "Level 18 · Generated",
     gridCols: 6,
     gridRows: 6,
     pieces: [
@@ -1300,8 +1180,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 55.5
   {
-    id: "level22",
-    name: "Level 22 · Generated",
+    id: "level19",
+    name: "Level 19 · Generated",
     gridCols: 6,
     gridRows: 6,
     pieces: [
@@ -1400,8 +1280,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 63.5
   {
-    id: "level23",
-    name: "Level 23 · Generated",
+    id: "level20",
+    name: "Level 20 · Generated",
     gridCols: 6,
     gridRows: 6,
     pieces: [
@@ -1485,8 +1365,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 63.5
   {
-    id: "level24",
-    name: "Level 24 · Generated",
+    id: "level21",
+    name: "Level 21 · Generated",
     gridCols: 6,
     gridRows: 6,
     pieces: [
@@ -1585,8 +1465,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 70
   {
-    id: "level25",
-    name: "Level 25 · Generated",
+    id: "level22",
+    name: "Level 22 · Generated",
     gridCols: 6,
     gridRows: 6,
     pieces: [
@@ -1675,8 +1555,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 70
   {
-    id: "level26",
-    name: "Level 26 · Generated",
+    id: "level23",
+    name: "Level 23 · Generated",
     gridCols: 6,
     gridRows: 6,
     pieces: [
@@ -1781,8 +1661,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 71.5
   {
-    id: "level27",
-    name: "Level 27 · Generated",
+    id: "level24",
+    name: "Level 24 · Generated",
     gridCols: 6,
     gridRows: 6,
     pieces: [
@@ -1879,8 +1759,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 78
   {
-    id: "level28",
-    name: "Level 28 · Generated",
+    id: "level25",
+    name: "Level 25 · Generated",
     gridCols: 6,
     gridRows: 6,
     pieces: [
@@ -1970,8 +1850,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 81.5
   {
-    id: "level29",
-    name: "Level 29 · Generated",
+    id: "level26",
+    name: "Level 26 · Generated",
     gridCols: 6,
     gridRows: 6,
     pieces: [
@@ -2066,8 +1946,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 86.5
   {
-    id: "level30",
-    name: "Level 30 · Generated",
+    id: "level27",
+    name: "Level 27 · Generated",
     gridCols: 6,
     gridRows: 6,
     pieces: [
@@ -2179,8 +2059,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 88
   {
-    id: "level31",
-    name: "Level 31 · Generated",
+    id: "level28",
+    name: "Level 28 · Generated",
     gridCols: 6,
     gridRows: 6,
     pieces: [
@@ -2269,8 +2149,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 96
   {
-    id: "level32",
-    name: "Level 32 · Generated",
+    id: "level29",
+    name: "Level 29 · Generated",
     gridCols: 6,
     gridRows: 6,
     pieces: [
@@ -2374,8 +2254,8 @@ const LEVELS = [
   },
   // difficulty score (solver-rs): 97
   {
-    id: "level33",
-    name: "Level 33 · Generated",
+    id: "level30",
+    name: "Level 30 · Generated",
     gridCols: 6,
     gridRows: 6,
     pieces: [

@@ -90,6 +90,41 @@ function markLevelSolved(level) {
   renderLevelSelect();
 }
 
+// Remembers the last level played *per color model* (switching models switches the whole
+// level set, so "last played" only makes sense within one of them), keyed by level id
+// rather than array index so it's unaffected by levels.js being reordered. Never recorded
+// for a dropped/custom level — those don't survive a reload anyway.
+const LAST_LEVEL_KEY = "overhue-last-level";
+let lastLevelByMode = {};
+try {
+  const stored = JSON.parse(localStorage.getItem(LAST_LEVEL_KEY) || "{}");
+  if (stored && typeof stored === "object") lastLevelByMode = stored;
+} catch {
+  // ignore — just starts every mode at its first level
+}
+
+function rememberLastLevel(level) {
+  if (level.custom) return;
+  lastLevelByMode[colorModel] = level.id;
+  try {
+    localStorage.setItem(LAST_LEVEL_KEY, JSON.stringify(lastLevelByMode));
+  } catch {
+    // ignore — this position just won't be remembered across reloads
+  }
+}
+
+// Where to resume within the currently active level set: the last level played there, if
+// it still exists and is still unlocked (both should always hold — solved status only ever
+// grows — but fall back to the first level rather than risk loading an invalid index).
+function initialLevelIndex() {
+  const id = lastLevelByMode[colorModel];
+  if (id) {
+    const idx = levelsList.findIndex((l) => l.id === id);
+    if (idx !== -1 && isLevelUnlocked(idx)) return idx;
+  }
+  return 0;
+}
+
 // ---------- DOM refs ----------
 const settingsBtn = document.getElementById("settings-btn");
 const settingsPanel = document.getElementById("settings-panel");
@@ -113,6 +148,7 @@ function loadLevel(index) {
   if (dropMessageEl) dropMessageEl.hidden = true;
   currentLevelIndex = index;
   const level = levelsList[index];
+  rememberLastLevel(level);
   GRID_COLS = level.gridCols;
   GRID_ROWS = level.gridRows;
   currentBlendMode = level.blendMode || "additive";
@@ -633,7 +669,7 @@ function setColorModel(mode) {
   // custom level belonged to whichever set was active when it was loaded, so it's cleared
   // rather than carried over into a picker for the other color model.
   levelsList = baseLevels().slice();
-  loadLevel(0);
+  loadLevel(initialLevelIndex());
 }
 
 colorModelAdditiveRadio.checked = colorModel === "additive";
@@ -739,4 +775,4 @@ targetPanelEl.addEventListener("drop", async (e) => {
 });
 
 // ---------- Init ----------
-loadLevel(0);
+loadLevel(initialLevelIndex());
