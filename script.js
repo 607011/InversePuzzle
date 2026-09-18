@@ -27,7 +27,19 @@ let pointerCandidate = null; // { piece, source, startX, startY, originalOrigin 
 
 const DRAG_THRESHOLD = 4; // px
 
+// ---------- Settings ----------
+const HARD_MODE_KEY = "inverse-puzzle-hard-mode";
+let hardMode = false;
+try {
+  hardMode = localStorage.getItem(HARD_MODE_KEY) === "true";
+} catch {
+  // localStorage can throw (private browsing, disabled storage) — hard mode just defaults off.
+}
+
 // ---------- DOM refs ----------
+const settingsBtn = document.getElementById("settings-btn");
+const settingsPanel = document.getElementById("settings-panel");
+const hardModeToggle = document.getElementById("hard-mode-toggle");
 const levelSelectEl = document.getElementById("level-select");
 const targetGridEl = document.getElementById("target-grid");
 const workspaceGridEl = document.getElementById("workspace-grid");
@@ -142,13 +154,15 @@ function updateHoverPreview() {
     // mix the dragged piece's pigment into whatever is already placed underneath. Paint
     // both the workspace cell AND the ghost cell sitting on top of it — the ghost is what's
     // actually visible while dragging, so it has to show the mixed color, not just the
-    // workspace underneath it.
+    // workspace underneath it. Hard mode keeps the positional "you can drop here" outline
+    // but withholds the actual resulting color — that's the whole point of hard mode.
     previewCells.forEach((p, i) => {
       const cellEl = workspaceCellEls[p.row][p.col];
+      cellEl.classList.add("hover-ok");
+      if (hardMode) return;
       const base = workspaceBaseColors[p.row][p.col];
       const mixed = addColors(base ? [base, pigment] : [pigment]);
       cellEl.style.backgroundColor = cssColor(mixed);
-      cellEl.classList.add("hover-ok");
       const ghostCellEl = dragState.ghostCellEls[i];
       if (ghostCellEl) ghostCellEl.style.backgroundColor = cssColor(mixed);
     });
@@ -180,6 +194,7 @@ function renderWorkspaceGrid() {
       workspaceCellEls[row][col] = cellEl;
 
       cellEl.addEventListener("pointerdown", (e) => {
+        if (hardMode) return; // dropped pieces are locked in place
         const owner = pieces.find(
           (p) => p.placed && p.cells.some((c) => p.origin.col + c.dx === col && p.origin.row + c.dy === row)
         );
@@ -472,6 +487,34 @@ document.addEventListener("keydown", (e) => {
 rotateBtn.addEventListener("click", () => applyTransform(rotate90));
 flipBtn.addEventListener("click", () => applyTransform(flipHorizontal));
 resetBtn.addEventListener("click", resetLevel);
+
+// ---------- Settings panel ----------
+function setSettingsPanelOpen(open) {
+  settingsPanel.hidden = !open;
+  settingsBtn.setAttribute("aria-expanded", String(open));
+}
+
+settingsBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  setSettingsPanelOpen(settingsPanel.hidden);
+});
+
+document.addEventListener("click", (e) => {
+  if (!settingsPanel.hidden && !settingsPanel.contains(e.target) && e.target !== settingsBtn) {
+    setSettingsPanelOpen(false);
+  }
+});
+
+hardModeToggle.checked = hardMode;
+hardModeToggle.addEventListener("change", () => {
+  hardMode = hardModeToggle.checked;
+  try {
+    localStorage.setItem(HARD_MODE_KEY, String(hardMode));
+  } catch {
+    // ignore — setting just won't persist across reloads
+  }
+  updateHoverPreview(); // harmless no-op if nothing is being dragged right now
+});
 
 // ---------- Init ----------
 loadLevel(0);

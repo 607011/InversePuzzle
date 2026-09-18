@@ -1,6 +1,6 @@
 # Status
 
-Last updated: 2026-09-18 (Level 3 added)
+Last updated: 2026-09-18 (settings menu + Hard mode added)
 
 **Live version:** https://607011.github.io/InversePuzzle/ (GitHub Pages, serves the `main` branch root, rebuilds automatically on every push)
 
@@ -30,6 +30,7 @@ A puzzle where colored polyomino pieces are dragged, rotated, and overlapped on 
 - **Solver** (`solver.js`): a standalone Node.js dev tool (not loaded by the game), see its own section below.
 - **Win condition generalized**: `checkWin` no longer requires every piece to be placed — it only checks that every grid cell's color matches the target. This was a prerequisite for Level 3 (below): a required piece being unplaced still fails correctly (some cell stays wrong/empty), so the relaxation is safe, and it's what makes "leave this piece in the tray" a legitimate winning move.
 - **Level 3, "Red herrings"** — difficulty idea 3 (decoy pieces), implemented: 3 real pieces (blue monomino, green domino, red monomino overlapping the green domino to make yellow) plus 2 decoys that share a color or a shape with a real piece but are never usable anywhere: a blue *domino* (the only blue needed is a single isolated cell, so it always spills onto a neighboring cell), and a red piece with the exact same domino shape as the real green piece (fits the silhouette perfectly, wrong color). Because any piece not part of the true solution would have to touch a cell that's either already exactly right or must stay empty, a genuine decoy is automatically unplaceable by construction — no special-case "this piece is fake" logic needed anywhere in the game code, it falls directly out of the existing exact-match rule. `levels.js` marks them with `decoy: true`, which `buildTarget` uses to skip them when computing the target (they still need real `cells`/`start` data to render and drag normally, just no `origin`, since decoys never contribute color).
+- **Settings menu + Hard mode**: a hamburger button in the header opens a dropdown panel (a `<div>` positioned `absolute` inside a `position: relative` wrapper, toggled via a `hidden` attribute and closed on outside click). Its one setting so far, "Hard mode" (persisted in `localStorage`), does two things: (1) the live color preview from above is suppressed — the positional "you can drop here" outline still shows, but the actual resulting color is withheld, so you have to reason about the mix yourself before committing; (2) a piece can no longer be picked back up off the workspace once dropped (the grid cells' `pointerdown` handler just returns early), making placement decisions permanent. "Reset level" still works in hard mode — the puzzle can always be restarted from scratch, only *selective* undo is disabled.
 
 ### Bugs found and fixed during development
 

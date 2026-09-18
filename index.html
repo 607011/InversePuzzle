@@ -8,7 +8,19 @@
 </head>
 <body>
 <header>
-  <h1>Inverse Puzzle</h1>
+  <div class="header-row">
+    <h1>Inverse Puzzle</h1>
+    <div class="settings">
+      <button id="settings-btn" class="icon-btn" aria-haspopup="true" aria-expanded="false" aria-label="Settings">☰</button>
+      <div id="settings-panel" class="settings-panel" hidden>
+        <label class="settings-option">
+          <input type="checkbox" id="hard-mode-toggle">
+          Hard mode
+        </label>
+        <p class="settings-hint">No live color preview while dragging, and a piece can't be picked back up once dropped.</p>
+      </div>
+    </div>
+  </div>
   <p class="hint">
     Drag the pieces on top of each other so the workspace matches the target exactly.
     Overlapping colors mix additively (Red + Green = Yellow, Green + Blue = Cyan, …).

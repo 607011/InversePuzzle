@@ -11,8 +11,10 @@ A puzzle concept where you overlap colored polyomino pieces to reconstruct a tar
 3. Drag pieces from the tray onto the workspace grid.
 4. Rotate (`R`) or flip (`F`) a piece — either while dragging it, or after selecting it in the tray with a plain click (no drag).
 5. Overlapping pieces mix their colors additively, clamped at 255 per channel.
-6. Match every cell of the workspace exactly to the target grid to solve the level.
-7. Not every piece has to be used — some levels include pieces that never belong anywhere.
+6. While dragging, valid drop cells preview the actual resulting mixed color, not just an outline.
+7. Match every cell of the workspace exactly to the target grid to solve the level.
+8. Not every piece has to be used — some levels include pieces that never belong anywhere.
+9. The ☰ menu has a "Hard mode": no live color preview, and pieces can't be picked back up once dropped.
 
 ## Tech
 
