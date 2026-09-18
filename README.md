@@ -9,7 +9,7 @@ A puzzle concept where you overlap colored polyomino pieces to reconstruct a tar
 1. Open [index.html](index.html) directly in a browser (no build step, no server required).
 2. Pick a level from the dropdown at the top — levels unlock in order as you solve them; a level you've already solved stays open for replay.
 3. Drag pieces from the tray onto the workspace grid.
-4. Rotate (`R`) or flip (`F`) a piece — either while dragging it, or after selecting it in the tray with a plain click (no drag). A plain click on a placed piece sends it back to the tray (unless Hard mode is on).
+4. Rotate (`R`) or flip (`F`) a piece — either while dragging it, or after selecting it in the tray with a plain click (no drag). Drag a placed piece onto the tray to send it back (unless Hard mode is on).
 5. Overlapping pieces mix their colors additively, clamped at 255 per channel.
 6. While dragging, valid drop cells preview the actual resulting mixed color, not just an outline.
 7. Match every cell of the workspace exactly to the target grid to solve the level.

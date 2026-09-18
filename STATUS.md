@@ -1,6 +1,6 @@
 # Status
 
-Last updated: 2026-09-18 (click a placed piece to send it back to the tray)
+Last updated: 2026-09-18 (drag, not click, to send a placed piece back to the tray; footer repo link)
 
 **Live version:** https://607011.github.io/Overhue/ (GitHub Pages, serves the `main` branch root, rebuilds automatically on every push)
 
@@ -36,7 +36,8 @@ A puzzle where colored polyomino pieces are dragged, rotated, and overlapped on 
 - **30 generated levels (Level 4-33)**: built via `solver-rs`'s generator with a rough parameter ramp (grid size 4x3 up to 6x6, real pieces 2 up to 14, decoys 0 up to 2), then — since raw generation parameters don't map cleanly to difficulty score (see `solver-rs`'s difficulty metric; e.g. a random 12-piece level scored both 70.0 and 147.0 across two runs) — **sorted by their actual computed difficulty score** to guarantee a genuinely monotonic ramp, rather than trusting parameter order alone. The last level (33) was generated to match `generate --cols 6 --rows 6 --pieces 14 --decoys 2 --attempts 10000` exactly (score 97.0, found on attempt 2077 of 10000, ~78s); everything before it was filtered to strictly lower scores so it stays the hardest. Cross-validated with both solvers: all 33 levels (3 hand-built + 30 generated) confirmed to have exactly one solution by solver.js AND solver-rs independently.
 - **Level picker is a `<select>`**: swapped out the wrapping grid of level buttons (fine for 3 levels, unwieldy for 33) for a single dropdown. Locked options are `disabled` with a 🔒 prefix, solved ones get a ✓ prefix, and dropped/custom levels land in their own `<optgroup>`.
 - **Renamed to Overhue**: the GitHub repo moved from `607011/InversePuzzle` to `607011/Overhue` (old URLs redirect automatically), which also moved the GitHub Pages URL. Updated everywhere the old name appeared — page title/heading, docs, the Rust crate (`inverse-puzzle-solver` → `overhue-solver`, including its Rust import paths), and the two `localStorage` keys.
-- **Send a placed piece back to the tray**: a plain click (no drag) on a placed piece unplaces it, mirroring the existing "plain click on a tray piece selects it" gesture. Only reachable outside Hard mode — the workspace cell's `pointerdown` handler that this relies on already bails out early when `hardMode` is on (same guard that blocks picking a piece up to move it), so no separate check was needed for this.
+- **Footer repo link**: a plain "View source on GitHub" link to the repo, `target="_blank" rel="noopener"`.
+- **Send a placed piece back to the tray**: drag it from the workspace onto the tray panel and release. First tried as a plain click (no drag) on a placed piece, but that made it too easy to unplace something by accident — a deliberate drag onto the tray requires actual intent, matching how every other move in the game already works. Implemented in `finishDrag`: a grid-sourced drag that doesn't land on a valid cell checks whether the drop point is over the tray panel (`isPointOverTray`, a simple bounding-rect containment check against `trayEl.closest(".panel")` — the whole panel, not just the tight piece tray div, so it doesn't require pixel-perfect aim) — if so, the piece is unplaced; if not (e.g. a near-miss just outside a grid cell), it reverts to its previous position rather than being lost. Only reachable outside Hard mode, via the same `pointerdown` guard that blocks picking a piece up at all when `hardMode` is on.
 
 ### Bugs found and fixed during development
 

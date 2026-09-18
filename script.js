@@ -434,18 +434,12 @@ function onPointerUp() {
   if (dragState) {
     finishDrag();
   } else if (pointerCandidate) {
-    // A click without movement.
+    // A click without movement on a tray piece toggles rotate/flip selection. (A click on a
+    // placed piece deliberately does nothing — sending it back to the tray takes an actual
+    // drag onto the tray, see finishDrag, so it can't happen by an accidental click.)
     const { piece, source } = pointerCandidate;
     if (source === "tray") {
-      // Toggle rotate/flip selection.
       selectedPiece = selectedPiece === piece ? null : piece;
-      renderAll();
-    } else if (source === "grid") {
-      // Send a placed piece back to the tray. (Only reachable outside hard mode — the
-      // workspace cell's pointerdown handler that starts this candidate already bails out
-      // in hard mode, so no extra check is needed here.)
-      piece.placed = false;
-      piece.origin = null;
       renderAll();
     }
   }
@@ -464,19 +458,30 @@ function cleanupPointerListeners() {
   window.removeEventListener("pointercancel", onPointerCancel);
 }
 
+const trayPanelEl = trayEl.closest(".panel");
+
+function isPointOverTray(x, y) {
+  const r = trayPanelEl.getBoundingClientRect();
+  return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+}
+
 function finishDrag() {
-  const { piece, cells, hoverCell, source, originalCells, originalOrigin, ghostEl } = dragState;
+  const { piece, cells, hoverCell, source, originalCells, originalOrigin, ghostEl, lastClientX, lastClientY } = dragState;
   const placement = hoverCell ? cellsForCellsAt(cells, hoverCell.col, hoverCell.row) : null;
 
   if (placement) {
     piece.cells = cells;
     piece.origin = { col: hoverCell.col, row: hoverCell.row };
     piece.placed = true;
-  } else if (source === "grid") {
+  } else if (source === "grid" && !isPointOverTray(lastClientX, lastClientY)) {
+    // Dropped somewhere that's neither a valid grid cell nor the tray (e.g. just missed a
+    // cell) — revert to where it was, rather than losing the placement to a near-miss.
     piece.cells = originalCells;
     piece.origin = originalOrigin;
     piece.placed = true;
   } else {
+    // Either dragged in from the tray and dropped invalidly, or deliberately dragged a
+    // placed piece back onto the tray — both send it back unplaced.
     piece.cells = originalCells;
     piece.placed = false;
     piece.origin = null;
