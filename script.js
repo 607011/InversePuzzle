@@ -40,6 +40,39 @@ try {
   // localStorage can throw (private browsing, disabled storage) — hard mode just defaults off.
 }
 
+// ---------- Progress ----------
+// Levels must be played in order: level i unlocks once level i-1 has been solved. A level
+// you've already solved stays unlocked (and solvable again) even after later ones open up.
+// Keyed by level id (not array index), so this survives levels.js being reordered or
+// having entries inserted. Dropped/custom levels (see the drag-and-drop section) are never
+// gated — they're for testing, not part of the progression.
+const SOLVED_LEVELS_KEY = "inverse-puzzle-solved-levels";
+let solvedLevelIds = new Set();
+try {
+  const stored = JSON.parse(localStorage.getItem(SOLVED_LEVELS_KEY) || "[]");
+  if (Array.isArray(stored)) solvedLevelIds = new Set(stored);
+} catch {
+  // ignore — progress just starts fresh
+}
+
+function isLevelUnlocked(index) {
+  const level = levelsList[index];
+  if (level.custom) return true;
+  if (index === 0) return true;
+  return solvedLevelIds.has(levelsList[index - 1].id) || solvedLevelIds.has(level.id);
+}
+
+function markLevelSolved(level) {
+  if (level.custom || solvedLevelIds.has(level.id)) return;
+  solvedLevelIds.add(level.id);
+  try {
+    localStorage.setItem(SOLVED_LEVELS_KEY, JSON.stringify([...solvedLevelIds]));
+  } catch {
+    // ignore — this solve just won't be remembered across reloads
+  }
+  renderLevelSelect();
+}
+
 // ---------- DOM refs ----------
 const settingsBtn = document.getElementById("settings-btn");
 const settingsPanel = document.getElementById("settings-panel");
@@ -55,6 +88,7 @@ const resetBtn = document.getElementById("reset-btn");
 
 // ---------- Level loading ----------
 function loadLevel(index) {
+  if (!isLevelUnlocked(index)) return; // solve the previous level first
   if (dropMessageEl) dropMessageEl.hidden = true;
   currentLevelIndex = index;
   const level = levelsList[index];
@@ -85,14 +119,32 @@ function loadLevel(index) {
 
 function renderLevelSelect() {
   levelSelectEl.innerHTML = "";
+  // Built-in levels go directly into the <select>; any dropped/custom ones (see the
+  // drag-and-drop section) are visually separated in their own <optgroup>.
+  let customGroup = null;
+
   levelsList.forEach((level, i) => {
-    const btn = document.createElement("button");
-    btn.textContent = level.name;
-    btn.className = "level-btn";
-    if (level.custom) btn.classList.add("custom");
-    if (i === currentLevelIndex) btn.classList.add("active");
-    btn.addEventListener("click", () => loadLevel(i));
-    levelSelectEl.appendChild(btn);
+    const unlocked = isLevelUnlocked(i);
+    const solved = solvedLevelIds.has(level.id);
+    const option = document.createElement("option");
+    option.value = String(i);
+    option.textContent = (solved ? "✓ " : unlocked ? "" : "🔒 ") + level.name;
+    if (!unlocked) {
+      option.disabled = true;
+      option.title = "Solve the previous level first";
+    }
+    if (i === currentLevelIndex) option.selected = true;
+
+    if (level.custom) {
+      if (!customGroup) {
+        customGroup = document.createElement("optgroup");
+        customGroup.label = "Custom (dropped)";
+        levelSelectEl.appendChild(customGroup);
+      }
+      customGroup.appendChild(option);
+    } else {
+      levelSelectEl.appendChild(option);
+    }
   });
 }
 
@@ -469,6 +521,7 @@ function checkWin(colors) {
   if (solved) {
     statusEl.textContent = "Solved! 🎉";
     statusEl.classList.add("solved");
+    markLevelSolved(levelsList[currentLevelIndex]);
   } else {
     statusEl.textContent = "";
     statusEl.classList.remove("solved");
@@ -493,6 +546,7 @@ document.addEventListener("keydown", (e) => {
 rotateBtn.addEventListener("click", () => applyTransform(rotate90));
 flipBtn.addEventListener("click", () => applyTransform(flipHorizontal));
 resetBtn.addEventListener("click", resetLevel);
+levelSelectEl.addEventListener("change", () => loadLevel(Number(levelSelectEl.value)));
 
 // ---------- Settings panel ----------
 function setSettingsPanelOpen(open) {

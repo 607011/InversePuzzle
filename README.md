@@ -7,7 +7,7 @@ A puzzle concept where you overlap colored polyomino pieces to reconstruct a tar
 ## How to play
 
 1. Open [index.html](index.html) directly in a browser (no build step, no server required).
-2. Pick a level with the buttons at the top.
+2. Pick a level from the dropdown at the top — levels unlock in order as you solve them; a level you've already solved stays open for replay.
 3. Drag pieces from the tray onto the workspace grid.
 4. Rotate (`R`) or flip (`F`) a piece — either while dragging it, or after selecting it in the tray with a plain click (no drag).
 5. Overlapping pieces mix their colors additively, clamped at 255 per channel.
@@ -46,4 +46,4 @@ It reports every way to place some or all pieces (across all rotations/flips and
 
 ## Current state
 
-Three levels so far: basics, a color-ambiguity level ("Look again"), and a decoy-pieces level ("Red herrings") — each exploring a different way additive color mixing itself (not just grid size or piece count) can make a puzzle genuinely harder. See [STATUS.md](STATUS.md) for a detailed log of what's done and what's planned.
+33 levels: 3 hand-built (basics, a color-ambiguity level, a decoy-pieces level — each exploring a different way additive color mixing can make a puzzle genuinely harder, not just grid size or piece count) plus 30 generated with `solver-rs`, sorted by their actual computed difficulty score into a monotonic ramp. All 33 are cross-validated by both solvers to have exactly one solution. See [STATUS.md](STATUS.md) for a detailed log of what's done and what's planned.

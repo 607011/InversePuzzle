@@ -7,4 +7,5 @@
 # Regenerable dev-tool artifacts — recreate with `node export-levels.js` /
 # `generate` (solver-rs), never hand-edited, not the source of truth (levels.js is).
 /levels.json
+/solver-rs/levels.json
 /solver-rs/generated-level.json

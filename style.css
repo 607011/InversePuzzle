@@ -95,13 +95,8 @@ kbd {
 }
 
 .level-select {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  display: block;
   margin-top: 1rem;
-}
-
-.level-btn {
   background: #3d3d44;
   color: var(--text);
   border: 1px solid #55555c;
@@ -109,19 +104,17 @@ kbd {
   padding: 0.5rem 0.9rem;
   cursor: pointer;
   font-size: 0.9rem;
+  max-width: 100%;
 }
 
-.level-btn:hover {
+.level-select:hover {
   background: #4a4a52;
 }
 
-.level-btn.active {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.level-btn.custom {
-  border-style: dashed;
+.level-select option,
+.level-select optgroup {
+  background: #2b2b30;
+  color: var(--text);
 }
 
 main {
