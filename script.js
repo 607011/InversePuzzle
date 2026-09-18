@@ -26,15 +26,16 @@ try {
   // localStorage can throw (private browsing, disabled storage) — hard mode just defaults off.
 }
 
-// "additive" (light mixing, the default) or "subtractive" (paint mixing) — see the
-// color-model comment in levels.js. Picks which of LEVELS/PAINT_LEVELS is the base level
-// set (see baseLevels() below); switching clears any dropped/custom levels rather than
-// mixing levels from both color models together in one picker.
+// "additive" (light mixing, the default), "subtractive" (paint mixing), or "colorblind" (a
+// colorblind-safe palette, still additive mixing) — see the color-model comment in
+// levels.js. Picks which of LEVELS/PAINT_LEVELS/COLORBLIND_LEVELS is the base level set (see
+// baseLevels() below); switching clears any dropped/custom levels rather than mixing levels
+// from different color models together in one picker.
 const COLOR_MODEL_KEY = "overhue-color-model";
 let colorModel = "additive";
 try {
   const stored = localStorage.getItem(COLOR_MODEL_KEY);
-  if (stored === "subtractive") colorModel = stored;
+  if (stored === "subtractive" || stored === "colorblind") colorModel = stored;
 } catch {
   // ignore — defaults to additive
 }
@@ -44,7 +45,9 @@ try {
 // section near the bottom) — kept separate from the LEVELS/PAINT_LEVELS constants in
 // levels.js so a dropped file can never end up looking like it's part of the shipped game.
 function baseLevels() {
-  return colorModel === "subtractive" ? PAINT_LEVELS : LEVELS;
+  if (colorModel === "subtractive") return PAINT_LEVELS;
+  if (colorModel === "colorblind") return COLORBLIND_LEVELS;
+  return LEVELS;
 }
 let levelsList = baseLevels().slice();
 let currentLevelIndex = 0;
@@ -131,6 +134,7 @@ const settingsPanel = document.getElementById("settings-panel");
 const hardModeToggle = document.getElementById("hard-mode-toggle");
 const colorModelAdditiveRadio = document.getElementById("color-model-additive");
 const colorModelSubtractiveRadio = document.getElementById("color-model-subtractive");
+const colorModelColorblindRadio = document.getElementById("color-model-colorblind");
 const levelSelectEl = document.getElementById("level-select");
 const prevLevelBtn = document.getElementById("prev-level-btn");
 const nextLevelBtn = document.getElementById("next-level-btn");
@@ -745,11 +749,15 @@ function setColorModel(mode) {
 
 colorModelAdditiveRadio.checked = colorModel === "additive";
 colorModelSubtractiveRadio.checked = colorModel === "subtractive";
+colorModelColorblindRadio.checked = colorModel === "colorblind";
 colorModelAdditiveRadio.addEventListener("change", () => {
   if (colorModelAdditiveRadio.checked) setColorModel("additive");
 });
 colorModelSubtractiveRadio.addEventListener("change", () => {
   if (colorModelSubtractiveRadio.checked) setColorModel("subtractive");
+});
+colorModelColorblindRadio.addEventListener("change", () => {
+  if (colorModelColorblindRadio.checked) setColorModel("colorblind");
 });
 
 // ---------- Drop a level JSON onto the target panel (quick testing, e.g. for levels made

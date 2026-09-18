@@ -10,13 +10,13 @@
 //   node export-levels.js [output-path]   # defaults to levels.json
 
 const fs = require("fs");
-const { LEVELS, PAINT_LEVELS, PIGMENTS } = require("./levels.js");
+const { LEVELS, PAINT_LEVELS, COLORBLIND_LEVELS, PIGMENTS } = require("./levels.js");
 
 const outPath = process.argv[2] || "levels.json";
 
 const data = {
   pigments: PIGMENTS,
-  levels: [...LEVELS, ...PAINT_LEVELS].map((level) => ({
+  levels: [...LEVELS, ...PAINT_LEVELS, ...COLORBLIND_LEVELS].map((level) => ({
     id: level.id,
     name: level.name,
     gridCols: level.gridCols,

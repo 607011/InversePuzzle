@@ -82,7 +82,27 @@ const BLUE = { r: 45, g: 70, b: 235 };
 // (see level 2): the color alone can never tell the two apart, only the piece shapes can.
 const AMBER = addColors([RED, GREEN]);
 
-const PIGMENTS = { red: RED, green: GREEN, blue: BLUE, amber: AMBER };
+// A second, colorblind-safe additive palette for COLORBLIND_LEVELS below — an accessible
+// alternative to RED/GREEN/BLUE for players with red-green color vision deficiency
+// (deuteranopia/protanopia), the most common form. RED and GREEN sit close together on
+// exactly the axis those conditions collapse, which this game's whole mechanic (matching
+// mixed colors by eye) depends on being able to tell apart. These three values are the
+// blue/orange/reddish-purple triad from the Okabe-Ito color-universal-design palette
+// (Okabe & Ito, 2008), chosen because it was specifically validated to stay distinguishable
+// under protanopia, deuteranopia, and tritanopia — not just picked by eye.
+const CB_BLUE = { r: 0, g: 114, b: 178 };
+const CB_ORANGE = { r: 230, g: 159, b: 0 };
+const CB_PURPLE = { r: 204, g: 121, b: 167 };
+
+const PIGMENTS = {
+  red: RED,
+  green: GREEN,
+  blue: BLUE,
+  amber: AMBER,
+  cbBlue: CB_BLUE,
+  cbOrange: CB_ORANGE,
+  cbPurple: CB_PURPLE,
+};
 
 // ---------- Piece transforms ----------
 function normalize(cells) {
@@ -4123,6 +4143,1843 @@ const PAINT_LEVELS = [
   },
 ];
 
+// A third level set, same "additive" mixing as LEVELS but built on the CB_BLUE/CB_ORANGE/
+// CB_PURPLE palette above instead of RED/GREEN/BLUE — for players with red-green color
+// vision deficiency, for whom LEVELS' own palette undermines the core mechanic (see the
+// CB_BLUE comment). Generated via solver-rs the same way as LEVELS (see _Scripts/), not
+// hand-built, and kept as a separate set rather than swapping LEVELS' palette outright so
+// existing progress/level ids for LEVELS stay untouched.
+const COLORBLIND_LEVELS = [
+  // difficulty score (solver-rs): 1
+  {
+    id: "cb1",
+    name: "Colorblind 1 · Generated",
+    gridCols: 4,
+    gridRows: 3,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 2, row: 0 },
+        start: { rotate: 2, flip: true },
+      },
+      {
+        id: "piece-2",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 2 }, { dx: 0, dy: 2 }, { dx: 1, dy: 1 }, { dx: 1, dy: 0 }],
+        origin: { col: 1, row: 0 },
+        start: { flip: true },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 2.5
+  {
+    id: "cb2",
+    name: "Colorblind 2 · Generated",
+    gridCols: 4,
+    gridRows: 3,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 1, row: 0 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-2",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 1, dy: 1 }],
+        origin: { col: 1, row: 1 },
+        start: { rotate: 3, flip: true },
+      },
+      {
+        id: "piece-3",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 0, row: 0 },
+        start: { rotate: 2, flip: true },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 4
+  {
+    id: "cb3",
+    name: "Colorblind 3 · Generated",
+    gridCols: 4,
+    gridRows: 4,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }],
+        origin: { col: 0, row: 0 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-2",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 3, row: 1 },
+        start: { flip: true },
+      },
+      {
+        id: "piece-3",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 0 }, { dx: 0, dy: 0 }, { dx: 0, dy: 1 }, { dx: 1, dy: 1 }],
+        origin: { col: 2, row: 1 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "decoy-1",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 1, dy: 1 }, { dx: 2, dy: 1 }, { dx: 1, dy: 0 }],
+        decoy: true,
+        start: { flip: true },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 5
+  {
+    id: "cb4",
+    name: "Colorblind 4 · Generated",
+    gridCols: 4,
+    gridRows: 3,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 1 }, { dx: 1, dy: 2 }, { dx: 0, dy: 1 }, { dx: 1, dy: 0 }],
+        origin: { col: 2, row: 0 },
+        start: { rotate: 2, flip: true },
+      },
+      {
+        id: "piece-2",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 0 }, { dx: 0, dy: 0 }],
+        origin: { col: 1, row: 2 },
+      },
+      {
+        id: "piece-3",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 3, row: 2 },
+        start: { rotate: 3, flip: true },
+      },
+      {
+        id: "decoy-1",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 1 }, { dx: 1, dy: 0 }, { dx: 1, dy: 2 }, { dx: 0, dy: 0 }],
+        decoy: true,
+        start: { rotate: 1, flip: true },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 8.5
+  {
+    id: "cb5",
+    name: "Colorblind 5 · Generated",
+    gridCols: 4,
+    gridRows: 4,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 3, row: 0 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-2",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 0, dy: 2 }],
+        origin: { col: 1, row: 0 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-3",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 1, row: 2 },
+        start: { rotate: 2 },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 9.5
+  {
+    id: "cb6",
+    name: "Colorblind 6 · Generated",
+    gridCols: 4,
+    gridRows: 3,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 2, row: 1 },
+        start: { rotate: 2, flip: true },
+      },
+      {
+        id: "piece-2",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 0, dy: 2 }],
+        origin: { col: 0, row: 0 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-3",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 1 }, { dx: 1, dy: 0 }, { dx: 0, dy: 1 }, { dx: 2, dy: 1 }],
+        origin: { col: 1, row: 0 },
+        start: { rotate: 3 },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 10
+  {
+    id: "cb7",
+    name: "Colorblind 7 · Generated",
+    gridCols: 4,
+    gridRows: 4,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 1, dy: 1 }, { dx: 0, dy: 0 }, { dx: 2, dy: 1 }],
+        origin: { col: 1, row: 0 },
+        start: { rotate: 3 },
+      },
+      {
+        id: "piece-2",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 0 }, { dx: 1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 0, dy: 2 }],
+        origin: { col: 0, row: 1 },
+        start: { rotate: 3 },
+      },
+      {
+        id: "piece-3",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 3, row: 3 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-4",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 0 }, { dx: 0, dy: 0 }],
+        origin: { col: 1, row: 0 },
+        start: { rotate: 2, flip: true },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 11
+  {
+    id: "cb8",
+    name: "Colorblind 8 · Generated",
+    gridCols: 5,
+    gridRows: 4,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 4, row: 3 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-2",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 1, row: 1 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-3",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 0, row: 3 },
+        start: { rotate: 2, flip: true },
+      },
+      {
+        id: "piece-4",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 2, row: 3 },
+        start: { flip: true },
+      },
+      {
+        id: "piece-5",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 0 }, { dx: 2, dy: 0 }, { dx: 0, dy: 0 }],
+        origin: { col: 1, row: 1 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "decoy-1",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }],
+        decoy: true,
+        start: { rotate: 3, flip: true },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 12.5
+  {
+    id: "cb9",
+    name: "Colorblind 9 · Generated",
+    gridCols: 5,
+    gridRows: 4,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }, { dx: 1, dy: 0 }],
+        origin: { col: 1, row: 1 },
+      },
+      {
+        id: "piece-2",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 0 }, { dx: 2, dy: 0 }, { dx: 3, dy: 0 }, { dx: 0, dy: 0 }],
+        origin: { col: 1, row: 0 },
+        start: { flip: true },
+      },
+      {
+        id: "piece-3",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }],
+        origin: { col: 3, row: 2 },
+        start: { rotate: 2, flip: true },
+      },
+      {
+        id: "piece-4",
+        color: "cbBlue",
+        cells: [{ dx: 2, dy: 0 }, { dx: 1, dy: 0 }, { dx: 1, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 0, row: 1 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "decoy-1",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 0 }, { dx: 2, dy: 0 }, { dx: 3, dy: 0 }, { dx: 0, dy: 0 }],
+        decoy: true,
+        start: { rotate: 2 },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 14.5
+  {
+    id: "cb10",
+    name: "Colorblind 10 · Generated",
+    gridCols: 4,
+    gridRows: 4,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }],
+        origin: { col: 3, row: 1 },
+        start: { rotate: 2, flip: true },
+      },
+      {
+        id: "piece-2",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 2, dy: 0 }, { dx: 2, dy: 1 }],
+        origin: { col: 0, row: 0 },
+        start: { flip: true },
+      },
+      {
+        id: "piece-3",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 3, row: 1 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-4",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 0 }, { dx: 0, dy: 0 }, { dx: 1, dy: 1 }, { dx: 2, dy: 1 }],
+        origin: { col: 0, row: 0 },
+      },
+      {
+        id: "decoy-1",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 2, dy: 0 }, { dx: 2, dy: 1 }],
+        decoy: true,
+        start: { rotate: 3, flip: true },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 15
+  {
+    id: "cb11",
+    name: "Colorblind 11 · Generated",
+    gridCols: 5,
+    gridRows: 4,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 1, dy: 1 }],
+        origin: { col: 3, row: 0 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-2",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 1, dy: 1 }, { dx: 1, dy: 0 }],
+        origin: { col: 1, row: 0 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-3",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 3, row: 2 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-4",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 0 }, { dx: 0, dy: 0 }, { dx: 2, dy: 0 }],
+        origin: { col: 1, row: 1 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-5",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 2 }, { dx: 0, dy: 0 }],
+        origin: { col: 1, row: 1 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "decoy-1",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 1 }, { dx: 1, dy: 0 }, { dx: 2, dy: 1 }, { dx: 0, dy: 0 }],
+        decoy: true,
+        start: { rotate: 1, flip: true },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 16.5
+  {
+    id: "cb12",
+    name: "Colorblind 12 · Generated",
+    gridCols: 4,
+    gridRows: 4,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 0 }, { dx: 0, dy: 0 }],
+        origin: { col: 2, row: 0 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-2",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 0 }, { dx: 1, dy: 1 }, { dx: 0, dy: 0 }, { dx: 2, dy: 0 }],
+        origin: { col: 1, row: 1 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-3",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 0, row: 3 },
+        start: { flip: true },
+      },
+      {
+        id: "piece-4",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 1, row: 3 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "decoy-1",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }],
+        decoy: true,
+        start: { rotate: 3, flip: true },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 16.5
+  {
+    id: "cb13",
+    name: "Colorblind 13 · Generated",
+    gridCols: 5,
+    gridRows: 4,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 1 }, { dx: 1, dy: 2 }, { dx: 0, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 1, row: 0 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-2",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 3, row: 3 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-3",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 0, row: 0 },
+      },
+      {
+        id: "piece-4",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }, { dx: 0, dy: 2 }],
+        origin: { col: 4, row: 0 },
+        start: { rotate: 3, flip: true },
+      },
+      {
+        id: "piece-5",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 2 }, { dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 2, row: 0 },
+        start: { rotate: 1, flip: true },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 23.5
+  {
+    id: "cb14",
+    name: "Colorblind 14 · Generated",
+    gridCols: 5,
+    gridRows: 4,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 1, dy: 1 }, { dx: 0, dy: 2 }],
+        origin: { col: 3, row: 1 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-2",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 1 }, { dx: 2, dy: 1 }, { dx: 0, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 2, row: 0 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-3",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }],
+        origin: { col: 0, row: 1 },
+        start: { rotate: 3 },
+      },
+      {
+        id: "piece-4",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 0, dy: 1 }],
+        origin: { col: 2, row: 2 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-5",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 0, dy: 1 }, { dx: 2, dy: 0 }],
+        origin: { col: 0, row: 1 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-6",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 4, row: 3 },
+      },
+      {
+        id: "decoy-1",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 0 }, { dx: 0, dy: 0 }, { dx: 1, dy: 1 }, { dx: 2, dy: 1 }],
+        decoy: true,
+        start: { rotate: 2 },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 25.5
+  {
+    id: "cb15",
+    name: "Colorblind 15 · Generated",
+    gridCols: 5,
+    gridRows: 5,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 0, row: 2 },
+        start: { rotate: 2, flip: true },
+      },
+      {
+        id: "piece-2",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 1, dy: 1 }],
+        origin: { col: 1, row: 3 },
+        start: { rotate: 3, flip: true },
+      },
+      {
+        id: "piece-3",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 1 }, { dx: 2, dy: 1 }, { dx: 0, dy: 1 }, { dx: 2, dy: 0 }],
+        origin: { col: 2, row: 1 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-4",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 2 }, { dx: 1, dy: 1 }, { dx: 1, dy: 0 }],
+        origin: { col: 3, row: 2 },
+      },
+      {
+        id: "piece-5",
+        color: "cbPurple",
+        cells: [{ dx: 2, dy: 1 }, { dx: 1, dy: 1 }, { dx: 1, dy: 0 }, { dx: 0, dy: 0 }],
+        origin: { col: 2, row: 1 },
+        start: { rotate: 3 },
+      },
+      {
+        id: "piece-6",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 0 }, { dx: 2, dy: 0 }, { dx: 0, dy: 0 }],
+        origin: { col: 0, row: 0 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "decoy-1",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 1 }, { dx: 1, dy: 0 }, { dx: 0, dy: 1 }, { dx: 0, dy: 2 }],
+        decoy: true,
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 27
+  {
+    id: "cb16",
+    name: "Colorblind 16 · Generated",
+    gridCols: 5,
+    gridRows: 5,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 0 }, { dx: 2, dy: 0 }, { dx: 0, dy: 0 }, { dx: 2, dy: 1 }],
+        origin: { col: 0, row: 2 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-2",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }],
+        origin: { col: 0, row: 0 },
+        start: { rotate: 2, flip: true },
+      },
+      {
+        id: "piece-3",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 2 }, { dx: 0, dy: 2 }, { dx: 1, dy: 1 }, { dx: 1, dy: 0 }],
+        origin: { col: 1, row: 0 },
+      },
+      {
+        id: "piece-4",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 0 }, { dx: 2, dy: 0 }, { dx: 0, dy: 0 }],
+        origin: { col: 1, row: 1 },
+        start: { flip: true },
+      },
+      {
+        id: "piece-5",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 0 }, { dx: 0, dy: 0 }],
+        origin: { col: 1, row: 4 },
+        start: { flip: true },
+      },
+      {
+        id: "piece-6",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }],
+        origin: { col: 2, row: 2 },
+        start: { rotate: 3, flip: true },
+      },
+      {
+        id: "decoy-1",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 0 }, { dx: 2, dy: 0 }, { dx: 0, dy: 0 }],
+        decoy: true,
+        start: { rotate: 2 },
+      },
+      {
+        id: "decoy-2",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 0 }, { dx: 2, dy: 0 }, { dx: 0, dy: 0 }],
+        decoy: true,
+        start: { rotate: 3 },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 28
+  {
+    id: "cb17",
+    name: "Colorblind 17 · Generated",
+    gridCols: 5,
+    gridRows: 4,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 1, row: 1 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-2",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }, { dx: 1, dy: 0 }],
+        origin: { col: 1, row: 1 },
+      },
+      {
+        id: "piece-3",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 1 }, { dx: 1, dy: 0 }, { dx: 0, dy: 0 }],
+        origin: { col: 0, row: 0 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-4",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 0 }, { dx: 1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 0, dy: 2 }],
+        origin: { col: 2, row: 1 },
+        start: { flip: true },
+      },
+      {
+        id: "piece-5",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 0, dy: 2 }],
+        origin: { col: 2, row: 1 },
+        start: { rotate: 2, flip: true },
+      },
+      {
+        id: "piece-6",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 1, row: 3 },
+        start: { rotate: 3 },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 30.5
+  {
+    id: "cb18",
+    name: "Colorblind 18 · Generated",
+    gridCols: 6,
+    gridRows: 5,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 0 }, { dx: 2, dy: 0 }, { dx: 0, dy: 0 }, { dx: 3, dy: 0 }],
+        origin: { col: 2, row: 4 },
+      },
+      {
+        id: "piece-2",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }, { dx: 0, dy: 2 }],
+        origin: { col: 1, row: 1 },
+        start: { flip: true },
+      },
+      {
+        id: "piece-3",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 0 }, { dx: 1, dy: 1 }, { dx: 0, dy: 1 }],
+        origin: { col: 0, row: 1 },
+        start: { flip: true },
+      },
+      {
+        id: "piece-4",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 3, row: 3 },
+      },
+      {
+        id: "piece-5",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 3, row: 3 },
+        start: { flip: true },
+      },
+      {
+        id: "piece-6",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 0, dy: 2 }],
+        origin: { col: 5, row: 2 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-7",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 1, dy: 0 }],
+        origin: { col: 0, row: 2 },
+        start: { rotate: 3 },
+      },
+      {
+        id: "piece-8",
+        color: "cbBlue",
+        cells: [{ dx: 2, dy: 0 }, { dx: 1, dy: 0 }, { dx: 2, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 0, row: 3 },
+        start: { rotate: 3, flip: true },
+      },
+      {
+        id: "decoy-1",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 0 }, { dx: 1, dy: 1 }, { dx: 2, dy: 0 }, { dx: 0, dy: 1 }],
+        decoy: true,
+        start: { rotate: 1, flip: true },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 33.5
+  {
+    id: "cb19",
+    name: "Colorblind 19 · Generated",
+    gridCols: 5,
+    gridRows: 5,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 1 }, { dx: 1, dy: 0 }, { dx: 1, dy: 2 }, { dx: 0, dy: 2 }],
+        origin: { col: 3, row: 0 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-2",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }, { dx: 1, dy: 1 }, { dx: 1, dy: 2 }],
+        origin: { col: 3, row: 2 },
+        start: { flip: true },
+      },
+      {
+        id: "piece-3",
+        color: "cbPurple",
+        cells: [{ dx: 2, dy: 0 }, { dx: 1, dy: 0 }, { dx: 0, dy: 0 }],
+        origin: { col: 1, row: 3 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-4",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 1 }, { dx: 2, dy: 1 }, { dx: 1, dy: 0 }, { dx: 0, dy: 1 }],
+        origin: { col: 2, row: 2 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-5",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 0, row: 1 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-6",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 1, row: 0 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-7",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 0, row: 4 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "decoy-1",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }, { dx: 1, dy: 1 }, { dx: 1, dy: 0 }],
+        decoy: true,
+        start: { flip: true },
+      },
+      {
+        id: "decoy-2",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 0 }, { dx: 0, dy: 0 }, { dx: 1, dy: 1 }],
+        decoy: true,
+        start: { rotate: 1, flip: true },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 34
+  {
+    id: "cb20",
+    name: "Colorblind 20 · Generated",
+    gridCols: 5,
+    gridRows: 5,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 3 }, { dx: 0, dy: 2 }, { dx: 0, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 4, row: 1 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-2",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 1, row: 3 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-3",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 1, row: 0 },
+        start: { rotate: 3, flip: true },
+      },
+      {
+        id: "piece-4",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 0 }, { dx: 1, dy: 1 }, { dx: 0, dy: 0 }, { dx: 0, dy: 1 }],
+        origin: { col: 1, row: 1 },
+        start: { rotate: 3 },
+      },
+      {
+        id: "piece-5",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 2, row: 1 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-6",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 1, row: 3 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-7",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 4, row: 2 },
+        start: { rotate: 3 },
+      },
+      {
+        id: "decoy-1",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        decoy: true,
+        start: { rotate: 1 },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 37.5
+  {
+    id: "cb21",
+    name: "Colorblind 21 · Generated",
+    gridCols: 5,
+    gridRows: 5,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 0 }, { dx: 1, dy: 1 }, { dx: 0, dy: 0 }, { dx: 0, dy: 1 }],
+        origin: { col: 0, row: 2 },
+        start: { rotate: 2, flip: true },
+      },
+      {
+        id: "piece-2",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 3, row: 2 },
+      },
+      {
+        id: "piece-3",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 1 }, { dx: 1, dy: 2 }, { dx: 1, dy: 0 }, { dx: 0, dy: 1 }],
+        origin: { col: 0, row: 0 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-4",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 1, dy: 1 }],
+        origin: { col: 0, row: 1 },
+        start: { rotate: 3, flip: true },
+      },
+      {
+        id: "piece-5",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 1, row: 4 },
+        start: { rotate: 2, flip: true },
+      },
+      {
+        id: "piece-6",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 1, row: 2 },
+        start: { rotate: 3, flip: true },
+      },
+      {
+        id: "piece-7",
+        color: "cbOrange",
+        cells: [{ dx: 2, dy: 0 }, { dx: 1, dy: 0 }, { dx: 1, dy: 1 }, { dx: 0, dy: 1 }],
+        origin: { col: 2, row: 0 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-8",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 2 }, { dx: 1, dy: 1 }, { dx: 0, dy: 2 }, { dx: 1, dy: 0 }],
+        origin: { col: 3, row: 1 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "decoy-1",
+        color: "cbBlue",
+        cells: [{ dx: 2, dy: 0 }, { dx: 1, dy: 0 }, { dx: 1, dy: 1 }, { dx: 0, dy: 1 }],
+        decoy: true,
+        start: { rotate: 1 },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 39
+  {
+    id: "cb22",
+    name: "Colorblind 22 · Generated",
+    gridCols: 6,
+    gridRows: 5,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 0 }, { dx: 0, dy: 0 }],
+        origin: { col: 1, row: 0 },
+        start: { rotate: 3, flip: true },
+      },
+      {
+        id: "piece-2",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 4, row: 0 },
+        start: { rotate: 3, flip: true },
+      },
+      {
+        id: "piece-3",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 0, dy: 2 }],
+        origin: { col: 4, row: 2 },
+        start: { flip: true },
+      },
+      {
+        id: "piece-4",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 0 }, { dx: 0, dy: 0 }, { dx: 0, dy: 1 }, { dx: 0, dy: 2 }],
+        origin: { col: 0, row: 0 },
+      },
+      {
+        id: "piece-5",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 2, row: 0 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-6",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 0, dy: 1 }],
+        origin: { col: 3, row: 2 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-7",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 2, row: 3 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-8",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 1 }, { dx: 1, dy: 0 }, { dx: 0, dy: 0 }, { dx: 2, dy: 1 }],
+        origin: { col: 0, row: 3 },
+        start: { flip: true },
+      },
+      {
+        id: "decoy-1",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        decoy: true,
+        start: { rotate: 1 },
+      },
+      {
+        id: "decoy-2",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 1 }, { dx: 1, dy: 0 }, { dx: 0, dy: 0 }, { dx: 2, dy: 1 }],
+        decoy: true,
+        start: { rotate: 3 },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 53.5
+  {
+    id: "cb23",
+    name: "Colorblind 23 · Generated",
+    gridCols: 6,
+    gridRows: 5,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }],
+        origin: { col: 2, row: 1 },
+        start: { rotate: 2, flip: true },
+      },
+      {
+        id: "piece-2",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 1 }, { dx: 1, dy: 2 }, { dx: 0, dy: 2 }, { dx: 1, dy: 0 }],
+        origin: { col: 0, row: 2 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-3",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 1, row: 3 },
+      },
+      {
+        id: "piece-4",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 1 }, { dx: 1, dy: 0 }, { dx: 2, dy: 1 }, { dx: 0, dy: 1 }],
+        origin: { col: 2, row: 3 },
+        start: { rotate: 2, flip: true },
+      },
+      {
+        id: "piece-5",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 3, row: 3 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-6",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 1, dy: 1 }],
+        origin: { col: 4, row: 1 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-7",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }],
+        origin: { col: 5, row: 2 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-8",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 1 }, { dx: 1, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 1, row: 1 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-9",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 1, dy: 1 }, { dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 3, row: 0 },
+        start: { rotate: 3, flip: true },
+      },
+      {
+        id: "decoy-1",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 1 }, { dx: 1, dy: 2 }, { dx: 0, dy: 2 }, { dx: 1, dy: 0 }],
+        decoy: true,
+        start: { flip: true },
+      },
+      {
+        id: "decoy-2",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 1 }, { dx: 1, dy: 0 }, { dx: 0, dy: 0 }, { dx: 0, dy: 1 }],
+        decoy: true,
+        start: { flip: true },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 58.5
+  {
+    id: "cb24",
+    name: "Colorblind 24 · Generated",
+    gridCols: 6,
+    gridRows: 5,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 0 }, { dx: 1, dy: 1 }, { dx: 0, dy: 1 }],
+        origin: { col: 3, row: 3 },
+      },
+      {
+        id: "piece-2",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 0, row: 0 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-3",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 1, dy: 1 }],
+        origin: { col: 2, row: 1 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-4",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 0 }, { dx: 0, dy: 0 }],
+        origin: { col: 4, row: 1 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-5",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 0 }, { dx: 0, dy: 0 }],
+        origin: { col: 0, row: 3 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-6",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 1, row: 3 },
+        start: { rotate: 3, flip: true },
+      },
+      {
+        id: "piece-7",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 0 }, { dx: 1, dy: 1 }, { dx: 0, dy: 1 }],
+        origin: { col: 0, row: 1 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-8",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 1 }, { dx: 1, dy: 0 }, { dx: 0, dy: 1 }, { dx: 0, dy: 2 }],
+        origin: { col: 0, row: 0 },
+        start: { rotate: 2, flip: true },
+      },
+      {
+        id: "piece-9",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 2 }, { dx: 0, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 2, row: 1 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "decoy-1",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 2 }, { dx: 0, dy: 0 }],
+        decoy: true,
+      },
+      {
+        id: "decoy-2",
+        color: "cbPurple",
+        cells: [{ dx: 2, dy: 1 }, { dx: 1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 2, dy: 0 }],
+        decoy: true,
+        start: { rotate: 1 },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 61
+  {
+    id: "cb25",
+    name: "Colorblind 25 · Generated",
+    gridCols: 6,
+    gridRows: 6,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }, { dx: 1, dy: 1 }],
+        origin: { col: 1, row: 0 },
+      },
+      {
+        id: "piece-2",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 1 }, { dx: 1, dy: 1 }, { dx: 1, dy: 0 }, { dx: 2, dy: 1 }],
+        origin: { col: 1, row: 0 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-3",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 0, dy: 2 }, { dx: 1, dy: 0 }],
+        origin: { col: 3, row: 1 },
+      },
+      {
+        id: "piece-4",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }, { dx: 0, dy: 2 }],
+        origin: { col: 5, row: 2 },
+      },
+      {
+        id: "piece-5",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 3, row: 5 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-6",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 1 }, { dx: 1, dy: 0 }, { dx: 0, dy: 1 }],
+        origin: { col: 2, row: 3 },
+        start: { rotate: 2, flip: true },
+      },
+      {
+        id: "piece-7",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 1, row: 3 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-8",
+        color: "cbBlue",
+        cells: [{ dx: 2, dy: 0 }, { dx: 1, dy: 0 }, { dx: 0, dy: 0 }],
+        origin: { col: 1, row: 5 },
+        start: { rotate: 3 },
+      },
+      {
+        id: "piece-9",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 5, row: 4 },
+        start: { rotate: 3 },
+      },
+      {
+        id: "piece-10",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 3, row: 4 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "decoy-1",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 0, dy: 2 }, { dx: 1, dy: 0 }],
+        decoy: true,
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "decoy-2",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 0, dy: 2 }, { dx: 1, dy: 0 }],
+        decoy: true,
+        start: { rotate: 1 },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 64
+  {
+    id: "cb26",
+    name: "Colorblind 26 · Generated",
+    gridCols: 6,
+    gridRows: 5,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 2, dy: 0 }],
+        origin: { col: 1, row: 0 },
+        start: { rotate: 2, flip: true },
+      },
+      {
+        id: "piece-2",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }, { dx: 1, dy: 1 }],
+        origin: { col: 4, row: 1 },
+        start: { rotate: 3 },
+      },
+      {
+        id: "piece-3",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 1, dy: 1 }],
+        origin: { col: 4, row: 1 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-4",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 5, row: 4 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-5",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 1, dy: 1 }, { dx: 2, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 3, row: 3 },
+        start: { rotate: 3, flip: true },
+      },
+      {
+        id: "piece-6",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 0 }, { dx: 2, dy: 0 }, { dx: 0, dy: 0 }],
+        origin: { col: 2, row: 4 },
+        start: { flip: true },
+      },
+      {
+        id: "piece-7",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 1, row: 3 },
+        start: { flip: true },
+      },
+      {
+        id: "piece-8",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 5, row: 0 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-9",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 2, dy: 0 }, { dx: 0, dy: 1 }],
+        origin: { col: 3, row: 3 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "decoy-1",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 1, dy: 0 }, { dx: 2, dy: 0 }],
+        decoy: true,
+        start: { rotate: 3, flip: true },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 66
+  {
+    id: "cb27",
+    name: "Colorblind 27 · Generated",
+    gridCols: 6,
+    gridRows: 5,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 0, row: 1 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-2",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 0, row: 0 },
+        start: { rotate: 3 },
+      },
+      {
+        id: "piece-3",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 0 }, { dx: 0, dy: 0 }],
+        origin: { col: 1, row: 3 },
+        start: { rotate: 3, flip: true },
+      },
+      {
+        id: "piece-4",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 2, dy: 0 }],
+        origin: { col: 0, row: 1 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-5",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 1, dy: 1 }, { dx: 0, dy: 2 }, { dx: 1, dy: 0 }],
+        origin: { col: 4, row: 0 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-6",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 1, dy: 0 }],
+        origin: { col: 2, row: 1 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-7",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 1, row: 4 },
+        start: { rotate: 3 },
+      },
+      {
+        id: "piece-8",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }, { dx: 1, dy: 1 }],
+        origin: { col: 1, row: 2 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-9",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 0, dy: 2 }, { dx: 0, dy: 0 }],
+        origin: { col: 0, row: 0 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-10",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 0 }, { dx: 0, dy: 0 }, { dx: 1, dy: 1 }, { dx: 2, dy: 1 }],
+        origin: { col: 2, row: 0 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "decoy-1",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 2 }, { dx: 0, dy: 0 }, { dx: 0, dy: 3 }],
+        decoy: true,
+      },
+      {
+        id: "decoy-2",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 0 }, { dx: 0, dy: 0 }, { dx: 2, dy: 0 }],
+        decoy: true,
+        start: { rotate: 3 },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 73.5
+  {
+    id: "cb28",
+    name: "Colorblind 28 · Generated",
+    gridCols: 6,
+    gridRows: 6,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 2 }, { dx: 0, dy: 0 }],
+        origin: { col: 3, row: 1 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-2",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 0, row: 1 },
+      },
+      {
+        id: "piece-3",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 5, row: 2 },
+        start: { rotate: 3, flip: true },
+      },
+      {
+        id: "piece-4",
+        color: "cbOrange",
+        cells: [{ dx: 2, dy: 0 }, { dx: 1, dy: 0 }, { dx: 0, dy: 0 }, { dx: 2, dy: 1 }],
+        origin: { col: 1, row: 4 },
+        start: { rotate: 3, flip: true },
+      },
+      {
+        id: "piece-5",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 2, row: 3 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-6",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 1 }, { dx: 1, dy: 0 }, { dx: 2, dy: 1 }, { dx: 0, dy: 1 }],
+        origin: { col: 2, row: 2 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-7",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 0, dy: 2 }, { dx: 1, dy: 2 }],
+        origin: { col: 1, row: 3 },
+        start: { flip: true },
+      },
+      {
+        id: "piece-8",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 2, row: 0 },
+        start: { flip: true },
+      },
+      {
+        id: "piece-9",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 0 }, { dx: 0, dy: 0 }, { dx: 1, dy: 1 }, { dx: 0, dy: 1 }],
+        origin: { col: 4, row: 1 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-10",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }, { dx: 1, dy: 0 }],
+        origin: { col: 3, row: 1 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-11",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 5, row: 2 },
+        start: { rotate: 3 },
+      },
+      {
+        id: "decoy-1",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 0 }, { dx: 0, dy: 0 }, { dx: 1, dy: 1 }, { dx: 0, dy: 1 }],
+        decoy: true,
+        start: { rotate: 3 },
+      },
+      {
+        id: "decoy-2",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 2 }, { dx: 0, dy: 1 }, { dx: 1, dy: 1 }, { dx: 1, dy: 0 }],
+        decoy: true,
+        start: { rotate: 1, flip: true },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 104
+  {
+    id: "cb29",
+    name: "Colorblind 29 · Generated",
+    gridCols: 6,
+    gridRows: 6,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 1, row: 0 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-2",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }],
+        origin: { col: 2, row: 3 },
+        start: { rotate: 3, flip: true },
+      },
+      {
+        id: "piece-3",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 2, dy: 1 }],
+        origin: { col: 1, row: 3 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-4",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }],
+        origin: { col: 2, row: 3 },
+        start: { flip: true },
+      },
+      {
+        id: "piece-5",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 0 }, { dx: 1, dy: 1 }, { dx: 1, dy: 2 }, { dx: 0, dy: 1 }],
+        origin: { col: 4, row: 2 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-6",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 1, row: 2 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-7",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 0, row: 2 },
+        start: { rotate: 3 },
+      },
+      {
+        id: "piece-8",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 1 }, { dx: 1, dy: 1 }, { dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 1, row: 3 },
+      },
+      {
+        id: "piece-9",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 1, dy: 1 }, { dx: 1, dy: 0 }],
+        origin: { col: 2, row: 2 },
+        start: { rotate: 2, flip: true },
+      },
+      {
+        id: "piece-10",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 1 }, { dx: 1, dy: 0 }, { dx: 0, dy: 0 }],
+        origin: { col: 4, row: 2 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "piece-11",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 0 }, { dx: 2, dy: 0 }, { dx: 0, dy: 0 }, { dx: 3, dy: 0 }],
+        origin: { col: 2, row: 5 },
+        start: { rotate: 3 },
+      },
+      {
+        id: "piece-12",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 2 }, { dx: 0, dy: 0 }],
+        origin: { col: 3, row: 1 },
+        start: { rotate: 2, flip: true },
+      },
+      {
+        id: "decoy-1",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 1 }, { dx: 1, dy: 1 }, { dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        decoy: true,
+        start: { rotate: 1 },
+      },
+      {
+        id: "decoy-2",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 1 }, { dx: 1, dy: 1 }, { dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        decoy: true,
+        start: { rotate: 3, flip: true },
+      }
+    ],
+  },
+  // difficulty score (solver-rs): 127.5
+  {
+    id: "cb30",
+    name: "Colorblind 30 · Generated",
+    gridCols: 6,
+    gridRows: 6,
+    pieces: [
+      {
+        id: "piece-1",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 0 }, { dx: 0, dy: 1 }],
+        origin: { col: 0, row: 1 },
+        start: { rotate: 3 },
+      },
+      {
+        id: "piece-2",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 0, row: 5 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-3",
+        color: "cbPurple",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 1, dy: 1 }],
+        origin: { col: 4, row: 0 },
+        start: { rotate: 3 },
+      },
+      {
+        id: "piece-4",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 0 }, { dx: 2, dy: 0 }, { dx: 1, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 2, row: 3 },
+      },
+      {
+        id: "piece-5",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 1, dy: 0 }, { dx: 0, dy: 2 }],
+        origin: { col: 0, row: 2 },
+      },
+      {
+        id: "piece-6",
+        color: "cbPurple",
+        cells: [{ dx: 1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 1, dy: 0 }],
+        origin: { col: 4, row: 0 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-7",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 4, row: 3 },
+        start: { rotate: 3 },
+      },
+      {
+        id: "piece-8",
+        color: "cbBlue",
+        cells: [{ dx: 1, dy: 1 }, { dx: 1, dy: 0 }, { dx: 2, dy: 0 }, { dx: 0, dy: 1 }],
+        origin: { col: 1, row: 2 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-9",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 1, dy: 1 }],
+        origin: { col: 0, row: 3 },
+        start: { rotate: 1, flip: true },
+      },
+      {
+        id: "piece-10",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 2 }, { dx: 1, dy: 2 }, { dx: 0, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 4, row: 3 },
+        start: { rotate: 3, flip: true },
+      },
+      {
+        id: "piece-11",
+        color: "cbBlue",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 1, dy: 1 }],
+        origin: { col: 2, row: 0 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "piece-12",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 1, dy: 1 }, { dx: 1, dy: 2 }],
+        origin: { col: 4, row: 3 },
+        start: { rotate: 3 },
+      },
+      {
+        id: "piece-13",
+        color: "cbOrange",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }],
+        origin: { col: 0, row: 3 },
+        start: { flip: true },
+      },
+      {
+        id: "decoy-1",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 0 }, { dx: 2, dy: 0 }, { dx: 1, dy: 1 }, { dx: 0, dy: 0 }],
+        decoy: true,
+        start: { rotate: 2 },
+      },
+      {
+        id: "decoy-2",
+        color: "cbOrange",
+        cells: [{ dx: 1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 2, dy: 1 }],
+        decoy: true,
+        start: { rotate: 1, flip: true },
+      }
+    ],
+  },
+];
+
 function buildTarget(level) {
   const target = Array.from({ length: level.gridRows }, () => Array(level.gridCols).fill(null));
   const contributions = Array.from({ length: level.gridRows }, () =>
@@ -4164,5 +6021,6 @@ if (typeof module !== "undefined" && module.exports) {
     buildTarget,
     LEVELS,
     PAINT_LEVELS,
+    COLORBLIND_LEVELS,
   };
 }
