@@ -2,8 +2,11 @@
 "use strict";
 
 // Exhaustive solution finder for Inverse Puzzle levels. Given a level's target grid and
-// its set of pieces, finds every way to place ALL pieces (any of up to 8 dihedral
-// orientations, any grid position) so the additive color mix matches the target exactly.
+// its set of pieces, finds every way to place SOME OR ALL of the pieces (any of up to 8
+// dihedral orientations, any grid position — or left unplaced entirely) so the additive
+// color mix matches the target exactly. Leaving a piece unplaced is legal because the game
+// itself doesn't require every piece to be used (see Level 3's decoy pieces, which by
+// design can never be placed anywhere without breaking the match).
 //
 // This is a dev tool, not part of the game: it's how a level designer checks that a level
 // has exactly the intended solution(s) — e.g. that "Level 2 · Look again" (see levels.js),
@@ -23,7 +26,8 @@
 //     considered if every cell it covers is inside the grid AND has a non-null target color
 //     (pieces can never legally touch a cell meant to stay empty).
 //   - Pieces are tried most-constrained-first (fewest valid placements first), a standard
-//     CSP heuristic that makes bad branches fail fast instead of late.
+//     CSP heuristic that makes bad branches fail fast instead of late. "Leave unplaced"
+//     counts as one more option per piece, so this ordering still applies unchanged.
 //   - The search prunes on a simple invariant: pigments only ever ADD, so a cell's running
 //     channel sum is monotonically non-decreasing as more pieces are placed on it. The
 //     moment a channel's running sum exceeds the target's value there (and that channel
@@ -122,13 +126,11 @@ function solveLevel(level) {
     placements: computePlacements(level, def, targetFlat),
   }));
 
-  // Most-constrained-first: fail fast on the piece with the fewest options.
+  // Most-constrained-first: fail fast on the piece with the fewest options. "Leave
+  // unplaced" is always available (see search() below), so no piece ever makes the level
+  // outright unsolvable by itself — a piece with zero real placements just always sits out.
   pieceInfos.sort((a, b) => a.placements.length - b.placements.length);
-
-  const unsolvable = pieceInfos.find((p) => p.placements.length === 0);
-  if (unsolvable) {
-    return { solvable: false, reason: `"${unsolvable.id}" has no legal placement at all`, solutions: [], nodesVisited: 0, timeMs: 0 };
-  }
+  const neverPlaceable = pieceInfos.filter((p) => p.placements.length === 0).map((p) => p.id);
 
   const sumR = new Int32Array(n);
   const sumG = new Int32Array(n);
@@ -189,6 +191,12 @@ function solveLevel(level) {
     }
 
     const piece = pieceInfos[pieceIndex];
+
+    // Option 1: leave this piece unplaced entirely (always legal, contributes nothing).
+    search(pieceIndex + 1, chosen);
+    if (solutions.length >= MAX_SOLUTIONS) return;
+
+    // Option 2: place it at one of its precomputed valid placements.
     for (const placement of piece.placements) {
       if (!fits(placement, piece.pigment)) continue;
       apply(placement, piece.pigment);
@@ -203,7 +211,7 @@ function solveLevel(level) {
   search(0, []);
 
   const timeMs = Number(process.hrtime.bigint() - startTime) / 1e6;
-  return { solvable: true, solutions, nodesVisited, timeMs, pieceInfos };
+  return { solvable: true, solutions, nodesVisited, timeMs, pieceInfos, neverPlaceable, allPieceIds: pieceInfos.map((p) => p.id) };
 }
 
 // ---------- CLI ----------
@@ -215,12 +223,14 @@ function reportLevel(level) {
   console.log(`\n=== ${level.name} (${level.id}) — grid ${level.gridCols}x${level.gridRows} ===`);
   const result = solveLevel(level);
 
-  if (!result.solvable) {
-    console.log(`  UNSOLVABLE: ${result.reason}`);
-    return;
-  }
-
   console.log(`  placements/piece: ${result.pieceInfos.map((p) => `${p.id}=${p.placements.length}`).join(", ")}`);
+  if (result.neverPlaceable.length > 0) {
+    const decoyIds = new Set(level.pieces.filter((p) => p.decoy).map((p) => p.id));
+    for (const id of result.neverPlaceable) {
+      const tag = decoyIds.has(id) ? "expected, marked decoy" : "UNEXPECTED — check levels.js";
+      console.log(`  note: "${id}" has zero valid placements anywhere (${tag})`);
+    }
+  }
   console.log(`  search nodes visited: ${result.nodesVisited}`);
   console.log(`  time: ${result.timeMs.toFixed(3)} ms`);
   console.log(`  solutions found: ${result.solutions.length}${result.solutions.length >= 1000 ? " (capped)" : ""}`);
@@ -233,8 +243,12 @@ function reportLevel(level) {
 
   result.solutions.forEach((solution, i) => {
     console.log(`  solution #${i + 1}:`);
+    const placedIds = new Set(solution.map((p) => p.id));
     for (const piece of solution) {
       console.log(`    ${piece.id}: origin=(${piece.origin.col},${piece.origin.row}) shape=[${formatCells(piece.cells)}]`);
+    }
+    for (const id of result.allPieceIds) {
+      if (!placedIds.has(id)) console.log(`    ${id}: (left in tray)`);
     }
   });
 }

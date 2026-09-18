@@ -12,6 +12,7 @@ A puzzle concept where you overlap colored polyomino pieces to reconstruct a tar
 4. Rotate (`R`) or flip (`F`) a piece — either while dragging it, or after selecting it in the tray with a plain click (no drag).
 5. Overlapping pieces mix their colors additively, clamped at 255 per channel.
 6. Match every cell of the workspace exactly to the target grid to solve the level.
+7. Not every piece has to be used — some levels include pieces that never belong anywhere.
 
 ## Tech
 
@@ -25,15 +26,15 @@ Plain HTML/CSS/JavaScript. No frameworks, no build tools, no dependencies. Every
 
 ## Solver
 
-`solver.js` is an exhaustive backtracking solver used while designing levels, to check that a level has exactly the solution(s) intended — in particular, that a level built around a deliberate visual trap (like Level 2, see [STATUS.md](STATUS.md)) doesn't accidentally admit an unintended *second* real solution.
+`solver.js` is an exhaustive backtracking solver used while designing levels, to check that a level has exactly the solution(s) intended — in particular, that a level built around a deliberate visual trap (like Level 2) or decoy pieces (like Level 3) doesn't accidentally admit an unintended *second* real solution, or a decoy that turns out to be secretly usable.
 
 ```bash
 node solver.js          # solve every level
 node solver.js level2   # solve just one level, by id or index
 ```
 
-It reports every full placement of all pieces (across all rotations/flips and positions) that reproduces the target exactly, plus timing and how many search nodes it visited — see the comment at the top of the file for how the pruning works.
+It reports every way to place some or all pieces (across all rotations/flips and positions, or left unplaced) that reproduces the target exactly, plus timing and how many search nodes it visited — see the comment at the top of the file for how the pruning works.
 
 ## Current state
 
-Two levels so far: a basics level, and a second level exploring how additive color mixing itself (not just grid size or piece count) can make a puzzle genuinely harder. See [STATUS.md](STATUS.md) for a detailed log of what's done and what's planned.
+Three levels so far: basics, a color-ambiguity level ("Look again"), and a decoy-pieces level ("Red herrings") — each exploring a different way additive color mixing itself (not just grid size or piece count) can make a puzzle genuinely harder. See [STATUS.md](STATUS.md) for a detailed log of what's done and what's planned.

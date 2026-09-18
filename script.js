@@ -406,13 +406,13 @@ function applyTransform(transformFn) {
 }
 
 function checkWin(colors) {
-  const allPlaced = pieces.every((p) => p.placed);
-  let solved = allPlaced;
-  if (allPlaced) {
-    for (let row = 0; row < GRID_ROWS && solved; row++) {
-      for (let col = 0; col < GRID_COLS && solved; col++) {
-        if (!colorsEqual(colors[row][col], TARGET[row][col])) solved = false;
-      }
+  // Not every piece has to be placed: a level can include decoy pieces that never belong
+  // anywhere (see Level 3). Solved just means every cell matches — if a piece that's
+  // actually needed is missing, some cell will be wrong or empty, and this still catches it.
+  let solved = true;
+  for (let row = 0; row < GRID_ROWS && solved; row++) {
+    for (let col = 0; col < GRID_COLS && solved; col++) {
+      if (!colorsEqual(colors[row][col], TARGET[row][col])) solved = false;
     }
   }
   if (solved) {

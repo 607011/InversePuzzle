@@ -1,6 +1,6 @@
 # Status
 
-Last updated: 2026-09-18
+Last updated: 2026-09-18 (Level 3 added)
 
 **Live version:** https://607011.github.io/InversePuzzle/ (GitHub Pages, serves the `main` branch root, rebuilds automatically on every push)
 
@@ -27,6 +27,8 @@ A puzzle where colored polyomino pieces are dragged, rotated, and overlapped on 
 - **Level select UI**: a row of buttons above the puzzle switches between levels via `loadLevel(index)`, which rebuilds the target, resets all pieces, and clears any in-progress drag/selection state.
 - **Level 2, "Look again"** — the first difficulty idea from the list below, implemented: two patches of the target grid are colored *identically* (same exact RGB), but one is built from a genuine red+green overlap and the other from a single piece pre-painted with a "premixed" pigment (`amber`, defined as exactly `addColors([red, green])` so it's pixel-identical by construction, not by coincidence). The color alone can never tell the two patches apart — only the piece shapes (and the fact that there's only one red and one green piece to go around) resolve which is which. Pieces also start pre-rotated (`start: {rotate: n}` in the level data) so the solution orientation has to be rediscovered, not just the position.
 - **Solver** (`solver.js`): a standalone Node.js dev tool (not loaded by the game), see its own section below.
+- **Win condition generalized**: `checkWin` no longer requires every piece to be placed — it only checks that every grid cell's color matches the target. This was a prerequisite for Level 3 (below): a required piece being unplaced still fails correctly (some cell stays wrong/empty), so the relaxation is safe, and it's what makes "leave this piece in the tray" a legitimate winning move.
+- **Level 3, "Red herrings"** — difficulty idea 3 (decoy pieces), implemented: 3 real pieces (blue monomino, green domino, red monomino overlapping the green domino to make yellow) plus 2 decoys that share a color or a shape with a real piece but are never usable anywhere: a blue *domino* (the only blue needed is a single isolated cell, so it always spills onto a neighboring cell), and a red piece with the exact same domino shape as the real green piece (fits the silhouette perfectly, wrong color). Because any piece not part of the true solution would have to touch a cell that's either already exactly right or must stay empty, a genuine decoy is automatically unplaceable by construction — no special-case "this piece is fake" logic needed anywhere in the game code, it falls directly out of the existing exact-match rule. `levels.js` marks them with `decoy: true`, which `buildTarget` uses to skip them when computing the target (they still need real `cells`/`start` data to render and drag normally, just no `origin`, since decoys never contribute color).
 
 ### Bugs found and fixed during development
 
@@ -37,7 +39,7 @@ A puzzle where colored polyomino pieces are dragged, rotated, and overlapped on 
 
 ## Solver
 
-`solver.js` is a Node.js-only dev tool (never loaded by the game) that exhaustively finds every way to place *all* of a level's pieces — across every distinct rotation/flip and every grid position — that reproduces the target exactly. Built to answer one question: does a level (especially one deliberately designed to *look* ambiguous while solving, like Level 2) actually have more than one *real* solution, which would be a design bug?
+`solver.js` is a Node.js-only dev tool (never loaded by the game) that exhaustively finds every way to place *some or all* of a level's pieces — across every distinct rotation/flip, every grid position, or left unplaced entirely — that reproduces the target exactly. Built to answer one question: does a level (especially one deliberately designed to *look* ambiguous while solving, like Level 2, or one with decoys, like Level 3) actually have more than one *real* solution, or an unintentionally placeable decoy, which would be a design bug?
 
 Run it with `node solver.js` (all levels) or `node solver.js <id-or-index>` (one level).
 
@@ -45,11 +47,11 @@ Performance approach (this was an explicit requirement, not just "make it work")
 
 - **Orientation dedup**: a piece's up to 8 dihedral transforms (4 rotations × mirrored/not) are generated once and deduplicated by a canonical cell-signature, so shapes with symmetry (a 2×2 square, a domino) don't get searched redundantly under different names.
 - **Placement prefiltering**: for each orientation, every grid position is precomputed once; a position is only kept if every cell it covers both fits in the grid and has a non-null target color. Pieces can never legally touch a "background" cell, so this eliminates most positions before the search even starts.
-- **Most-constrained-first ordering**: pieces are searched in ascending order of how many valid placements they have, a standard CSP heuristic — the piece with the fewest options is tried first, so a doomed branch fails immediately instead of many pieces deep.
+- **Most-constrained-first ordering**: pieces are searched in ascending order of how many valid placements they have, a standard CSP heuristic — the piece with the fewest options is tried first, so a doomed branch fails immediately instead of many pieces deep. "Leave unplaced" is one more option available to every piece, so a piece with zero real placements (an unconditional decoy) doesn't make the level unsolvable — it just always sits out.
 - **Monotonic pruning**: pigments only ever add, never subtract, so a cell's running per-channel sum can only grow as more pieces are placed on it. The moment a channel's running sum exceeds the target's value there (for a channel that isn't already saturated at 255), that branch can be abandoned immediately — it can never come back down to match. This is what turns the search from "generate every full combination, then check" into "die after the first wrong overlap."
 - Verified against a deliberately ambiguous test level (two identical monominoes, two interchangeable target cells) that the solver correctly reports 2 solutions rather than over-pruning to 1 — i.e. the pruning is sound, not just fast.
 
-Current result: both levels have exactly one solution, confirming Level 2's visual trap is a genuine red herring during solving, not an accidental second valid arrangement — found in under a millisecond, visiting only 4-5 search nodes per level (these puzzles are tiny; the pruning above matters more as levels grow larger).
+Current result: all three levels have exactly one solution. Level 2's visual trap is a genuine red herring during solving, not an accidental second valid arrangement, and Level 3's two decoys are confirmed mathematically unplaceable anywhere without breaking the match (each ends up "(left in tray)" in the one solution found) — all found in well under a millisecond, visiting a couple dozen search nodes at most (these puzzles are tiny; the pruning above matters more as levels grow larger).
 
 ## Open questions / decisions already made
 
@@ -68,11 +70,13 @@ Discussed as a deliberate alternative to just scaling grid size / piece count, w
 4. **Blend-mode or order-dependent special pieces** — most pieces stay additive, but introduce occasional pieces that use a different blend mode (e.g. multiply, or alpha blending) so stacking order starts to matter, compounding with rotation/flip choices.
 5. **Partially hidden piece shapes** — a piece's true footprint is only revealed once it overlaps something else (e.g. some cells start "invisible" until covered), mixing shape discovery with color discovery.
 
-**Idea 1 is now implemented** (Level 2, described above) — though via the "premixed pigment" variant of the idea (a dedicated piece whose color exactly equals another combination's sum) rather than pure channel-saturation trickery, since that turned out to be the cleaner and more reliably-constructible way to guarantee genuine, exact color ambiguity rather than a merely close/confusable one. Ideas 2-5 remain open.
+**Idea 1 is now implemented** (Level 2, described above) — though via the "premixed pigment" variant of the idea (a dedicated piece whose color exactly equals another combination's sum) rather than pure channel-saturation trickery, since that turned out to be the cleaner and more reliably-constructible way to guarantee genuine, exact color ambiguity rather than a merely close/confusable one.
+
+**Idea 3 is now implemented** (Level 3, described above). Ideas 2, 4, and 5 remain open.
 
 ## Next steps (not yet started)
 
-- [ ] Try difficulty idea 2, 3, 4, or 5 from the list above for a Level 3.
+- [ ] Try difficulty idea 2, 4, or 5 from the list above for a Level 4.
 - [ ] Decide on and build a difficulty progression once more than 2-3 levels exist.
 - [ ] Consider having the solver double as an in-game/CI sanity check (e.g. a script that fails CI if any level has zero or more-than-expected solutions), rather than only a manually-run dev tool.
 - [ ] Longer-term, evaluate procedural level generation (start from a random target, decompose into pieces) — deliberately deferred until the mechanic and difficulty levers are validated by hand-built levels. The solver's placement-enumeration logic would likely be reusable for this (generate candidate piece sets, then use the solver to confirm uniqueness).

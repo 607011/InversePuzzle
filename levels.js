@@ -148,6 +148,57 @@ const LEVELS = [
       },
     ],
   },
+  {
+    id: "level3",
+    name: "Level 3 · Red herrings",
+    gridCols: 3,
+    gridRows: 2,
+    pieces: [
+      // The real solution: a lone blue cell, a green domino, and a red monomino that
+      // overlaps the green domino's second cell to make yellow.
+      {
+        id: "blue-piece",
+        color: "blue",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 0, row: 0 },
+      },
+      {
+        id: "green-piece",
+        color: "green",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 1, row: 1 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "red-piece",
+        color: "red",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 2, row: 1 },
+      },
+      // Decoys: pieces that never belong anywhere. `decoy: true` excludes them from the
+      // target computation below, and the win check (script.js) only cares whether the
+      // final colors match — leaving these two in the tray, unplaced, is required to win.
+      // Same color as blue-piece, but a domino instead of a monomino: the only spot that
+      // needs blue is a single isolated cell, so this always spills onto (and ruins) a
+      // neighboring cell, whichever way it's placed.
+      {
+        id: "decoy-blue-domino",
+        color: "blue",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        decoy: true,
+        start: { rotate: 1 },
+      },
+      // Same shape as green-piece's domino, but colored red: it fits the silhouette
+      // perfectly, yet using it instead of (or alongside) the real green piece can only
+      // ever produce the wrong color there.
+      {
+        id: "decoy-red-domino",
+        color: "red",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        decoy: true,
+      },
+    ],
+  },
 ];
 
 function buildTarget(level) {
@@ -156,6 +207,7 @@ function buildTarget(level) {
     Array.from({ length: level.gridCols }, () => [])
   );
   for (const def of level.pieces) {
+    if (def.decoy) continue; // decoys never belong in the target; see Level 3
     for (const cell of def.cells) {
       const col = def.origin.col + cell.dx;
       const row = def.origin.row + cell.dy;
