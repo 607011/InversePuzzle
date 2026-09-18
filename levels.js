@@ -6,7 +6,19 @@
 // No build step either way.
 
 // ---------- Color model ----------
-// Each base pigment is added channel-wise and clamped to 0-255 ("light" mixing).
+// Two mixing rules, selected per level via `blendMode` (see LEVELS/PAINT_LEVELS below).
+//
+// "additive" (light mixing): each pigment is added channel-wise and clamped to 0-255.
+// This is how overlapping colored light (or colored glass/gels) behaves — red+green light
+// makes yellow, and stacking the same color on itself only ever gets brighter (it clamps at
+// white). It's the default and what all of LEVELS uses.
+//
+// "subtractive" (paint/ink mixing): each pigment's channel is treated as how much of that
+// wavelength it *lets through* (0 = fully absorbed, 255 = fully reflected), so overlapping
+// pigments multiply those fractions together. This is much closer to how actual paint
+// behaves: red+green makes a dark olive/brown (not yellow), stacking a color on itself only
+// ever gets darker or stays the same (never brighter), and mixing all three primaries heads
+// toward black/mud rather than white. See PAINT_LEVELS.
 function addColors(colors) {
   if (colors.length === 0) return null;
   const sum = { r: 0, g: 0, b: 0 };
@@ -20,6 +32,29 @@ function addColors(colors) {
     g: Math.min(255, sum.g),
     b: Math.min(255, sum.b),
   };
+}
+
+function multiplyColors(colors) {
+  if (colors.length === 0) return null;
+  let r = 1;
+  let g = 1;
+  let b = 1;
+  for (const c of colors) {
+    r *= c.r / 255;
+    g *= c.g / 255;
+    b *= c.b / 255;
+  }
+  return {
+    r: Math.round(r * 255),
+    g: Math.round(g * 255),
+    b: Math.round(b * 255),
+  };
+}
+
+// Dispatches to the right mixing rule for a level. `blendMode` defaults to "additive" so
+// existing level data (LEVELS) doesn't need to mention it at all.
+function combineColors(colors, blendMode) {
+  return blendMode === "subtractive" ? multiplyColors(colors) : addColors(colors);
 }
 
 function colorsEqual(a, b) {
@@ -2451,6 +2486,162 @@ const LEVELS = [
   },
 ];
 
+// A separate, smaller level set using "subtractive" (paint/ink-like) mixing instead of
+// "additive" (light-like) mixing — see the color-model comment above. Kept apart from
+// LEVELS rather than folding in: LEVELS' own tricks (Level 2's premixed "amber" pigment
+// especially) are specifically built around additive sums and would mean something
+// different — or nothing at all — under multiplication, so reusing the same level data
+// for both modes isn't meaningful. Same RED/GREEN/BLUE pigment values work well for both
+// mixing rules without retuning (verified: red+green -> a dark olive/brown, red+blue -> a
+// dark magenta, green+blue -> a dark teal, all three -> near-black, and the same pigment
+// twice only ever gets darker, never brighter).
+const PAINT_LEVELS = [
+  {
+    id: "paint1",
+    name: "Paint 1 · Basics",
+    gridCols: 3,
+    gridRows: 2,
+    blendMode: "subtractive",
+    pieces: [
+      // Same shapes as Level 1, but mixed subtractively: the blue+green corner comes out a
+      // dark teal instead of cyan, and the green+red corner a dark olive instead of yellow.
+      {
+        id: "green-piece",
+        color: "green",
+        cells: [
+          { dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 2, dy: 0 },
+          { dx: 1, dy: 1 }, { dx: 2, dy: 1 },
+        ],
+        origin: { col: 0, row: 0 },
+      },
+      {
+        id: "red-piece",
+        color: "red",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 0, row: 1 },
+      },
+      {
+        id: "blue-piece",
+        color: "blue",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 0, row: 0 },
+        start: { rotate: 2 },
+      },
+    ],
+  },
+  {
+    id: "paint2",
+    name: "Paint 2 · Darker, not brighter",
+    gridCols: 3,
+    gridRows: 2,
+    blendMode: "subtractive",
+    pieces: [
+      // The whole point of this one: (0,0) gets two red pieces stacked, (1,0) only one —
+      // in paint mode the doubled-up cell comes out darker/more saturated, never lighter.
+      {
+        id: "red-domino",
+        color: "red",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 0, row: 0 },
+      },
+      {
+        id: "red-mono",
+        color: "red",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 0, row: 0 },
+      },
+      {
+        id: "blue-piece",
+        color: "blue",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 2, row: 0 },
+      },
+      {
+        id: "green-piece",
+        color: "green",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 0, row: 1 },
+        start: { flip: true },
+      },
+    ],
+  },
+  {
+    id: "paint3",
+    name: "Paint 3 · Full mix",
+    gridCols: 3,
+    gridRows: 3,
+    blendMode: "subtractive",
+    pieces: [
+      // One cell where all three primaries overlap (heads toward black/mud), surrounded by
+      // each pair on its own — every two-color paint mix in one small level.
+      {
+        id: "red-piece",
+        color: "red",
+        cells: [{ dx: 1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 1, dy: 0 }],
+        origin: { col: 0, row: 0 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "green-piece",
+        color: "green",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 2, dy: 0 }, { dx: 1, dy: 1 }],
+        origin: { col: 0, row: 1 },
+        start: { rotate: 2 },
+      },
+      {
+        id: "blue-piece",
+        color: "blue",
+        cells: [{ dx: 0, dy: 1 }, { dx: 0, dy: 0 }, { dx: 1, dy: 1 }],
+        origin: { col: 1, row: 0 },
+        start: { flip: true },
+      },
+    ],
+  },
+  {
+    id: "paint4",
+    name: "Paint 4 · Red herrings",
+    gridCols: 3,
+    gridRows: 2,
+    blendMode: "subtractive",
+    pieces: [
+      // Same trap as Level 3: a decoy sharing blue-piece's color but not its shape (always
+      // spills over), and one sharing green-piece's shape but not its color.
+      {
+        id: "blue-piece",
+        color: "blue",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 0, row: 0 },
+      },
+      {
+        id: "green-piece",
+        color: "green",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        origin: { col: 1, row: 1 },
+        start: { rotate: 1 },
+      },
+      {
+        id: "red-piece",
+        color: "red",
+        cells: [{ dx: 0, dy: 0 }],
+        origin: { col: 2, row: 1 },
+      },
+      {
+        id: "decoy-blue-domino",
+        color: "blue",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        decoy: true,
+        start: { rotate: 1 },
+      },
+      {
+        id: "decoy-red-domino",
+        color: "red",
+        cells: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        decoy: true,
+      },
+    ],
+  },
+];
+
 function buildTarget(level) {
   const target = Array.from({ length: level.gridRows }, () => Array(level.gridCols).fill(null));
   const contributions = Array.from({ length: level.gridRows }, () =>
@@ -2466,7 +2657,7 @@ function buildTarget(level) {
   }
   for (let row = 0; row < level.gridRows; row++) {
     for (let col = 0; col < level.gridCols; col++) {
-      target[row][col] = addColors(contributions[row][col]);
+      target[row][col] = combineColors(contributions[row][col], level.blendMode);
     }
   }
   return target;
@@ -2480,6 +2671,8 @@ if (typeof module !== "undefined" && module.exports) {
     BLUE,
     AMBER,
     addColors,
+    multiplyColors,
+    combineColors,
     colorsEqual,
     cssColor,
     normalize,
@@ -2489,5 +2682,6 @@ if (typeof module !== "undefined" && module.exports) {
     applyStartTransform,
     buildTarget,
     LEVELS,
+    PAINT_LEVELS,
   };
 }

@@ -2,7 +2,7 @@
 
 **Play the latest version:** https://607011.github.io/Overhue/
 
-A puzzle concept where you overlap colored polyomino pieces to reconstruct a target pattern. Colors mix **additively** where pieces overlap (like light: Red + Green = Yellow, Green + Blue = Cyan, ...). The twist: you work backward from the target — figuring out which pieces, in which orientation and position, combine to produce exactly the colors and shape shown.
+A puzzle concept where you overlap colored polyomino pieces to reconstruct a target pattern. Colors mix where pieces overlap — **additively** like light (Red + Green = Yellow, brighter the more you stack) by default, or **subtractively** like paint (Red + Green = a dark olive, darker the more you stack) in Paint mode. The twist: you work backward from the target — figuring out which pieces, in which orientation and position, combine to produce exactly the colors and shape shown.
 
 ## How to play
 
@@ -16,6 +16,7 @@ A puzzle concept where you overlap colored polyomino pieces to reconstruct a tar
 8. Not every piece has to be used — some levels include pieces that never belong anywhere.
 9. The ☰ menu has a "Hard mode": no live color preview, and pieces can't be picked back up once dropped.
 10. Drag a level JSON file onto the Target panel to try it out — either one produced by [solver-rs](solver-rs)'s generator, or a full `levels.json` export ([export-levels.js](export-levels.js)). Loaded levels show up as dashed "custom" entries in the level picker; nothing is written back to `levels.js` — this is just for quick testing.
+11. The ☰ menu also has a "Color model" switch: **Light** (additive, the default — red + green = yellow, brighter the more you stack) or **Paint** (subtractive — red + green = a dark olive, darker the more you stack, much closer to how actual paint behaves). Each mode has its own separate level set and its own progression.
 
 ## Tech
 
@@ -46,4 +47,8 @@ It reports every way to place some or all pieces (across all rotations/flips and
 
 ## Current state
 
-33 levels: 3 hand-built (basics, a color-ambiguity level, a decoy-pieces level — each exploring a different way additive color mixing can make a puzzle genuinely harder, not just grid size or piece count) plus 30 generated with `solver-rs`, sorted by their actual computed difficulty score into a monotonic ramp. All 33 are cross-validated by both solvers to have exactly one solution. See [STATUS.md](STATUS.md) for a detailed log of what's done and what's planned.
+33 additive ("Light") levels: 3 hand-built (basics, a color-ambiguity level, a decoy-pieces level — each exploring a different way color mixing can make a puzzle genuinely harder, not just grid size or piece count) plus 30 generated with `solver-rs`, sorted by their actual computed difficulty score into a monotonic ramp. All 33 are cross-validated by both solvers to have exactly one solution.
+
+Plus 4 subtractive ("Paint") levels — added after real playtester feedback that additive mixing doesn't match how paint actually behaves (see STATUS.md) — hand-built and validated with `solver.js`; `solver-rs` doesn't support this mode yet.
+
+See [STATUS.md](STATUS.md) for a detailed log of what's done and what's planned.

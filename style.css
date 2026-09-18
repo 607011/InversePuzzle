@@ -80,6 +80,25 @@ header h1 {
   line-height: 1.4;
 }
 
+.settings-divider {
+  margin: 0.9rem 0;
+  border: none;
+  border-top: 1px solid #444;
+}
+
+.settings-label {
+  margin: 0 0 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.settings-panel .settings-option + .settings-option {
+  margin-top: 0.4rem;
+}
+
 .hint {
   max-width: 60rem;
   color: var(--muted);

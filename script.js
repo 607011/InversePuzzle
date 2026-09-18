@@ -17,20 +17,6 @@ function pieceBoxSize(cells) {
   };
 }
 
-// ---------- Game state ----------
-// Built-in levels plus any dropped in at runtime for quick testing (see the drag-and-drop
-// section near the bottom) — kept separate from the LEVELS constant in levels.js so a
-// dropped file can never end up looking like it's part of the shipped game.
-let levelsList = LEVELS.slice();
-let currentLevelIndex = 0;
-let GRID_COLS, GRID_ROWS, TARGET, pieces;
-
-let selectedPiece = null; // an unplaced tray piece selected for rotate/flip (no drag in progress)
-let dragState = null; // { piece, cells, source: 'tray'|'grid', originalCells, originalOrigin, fractionX, fractionY, ghostEl, hoverCell }
-let pointerCandidate = null; // { piece, source, startX, startY, originalOrigin } before drag threshold is exceeded
-
-const DRAG_THRESHOLD = 4; // px
-
 // ---------- Settings ----------
 const HARD_MODE_KEY = "overhue-hard-mode";
 let hardMode = false;
@@ -39,6 +25,37 @@ try {
 } catch {
   // localStorage can throw (private browsing, disabled storage) — hard mode just defaults off.
 }
+
+// "additive" (light mixing, the default) or "subtractive" (paint mixing) — see the
+// color-model comment in levels.js. Picks which of LEVELS/PAINT_LEVELS is the base level
+// set (see baseLevels() below); switching clears any dropped/custom levels rather than
+// mixing levels from both color models together in one picker.
+const COLOR_MODEL_KEY = "overhue-color-model";
+let colorModel = "additive";
+try {
+  const stored = localStorage.getItem(COLOR_MODEL_KEY);
+  if (stored === "subtractive") colorModel = stored;
+} catch {
+  // ignore — defaults to additive
+}
+
+// ---------- Game state ----------
+// Built-in levels plus any dropped in at runtime for quick testing (see the drag-and-drop
+// section near the bottom) — kept separate from the LEVELS/PAINT_LEVELS constants in
+// levels.js so a dropped file can never end up looking like it's part of the shipped game.
+function baseLevels() {
+  return colorModel === "subtractive" ? PAINT_LEVELS : LEVELS;
+}
+let levelsList = baseLevels().slice();
+let currentLevelIndex = 0;
+let GRID_COLS, GRID_ROWS, TARGET, pieces;
+let currentBlendMode = "additive"; // set from the loaded level; drives computeWorkspaceColors/updateHoverPreview
+
+let selectedPiece = null; // an unplaced tray piece selected for rotate/flip (no drag in progress)
+let dragState = null; // { piece, cells, source: 'tray'|'grid', originalCells, originalOrigin, fractionX, fractionY, ghostEl, hoverCell }
+let pointerCandidate = null; // { piece, source, startX, startY, originalOrigin } before drag threshold is exceeded
+
+const DRAG_THRESHOLD = 4; // px
 
 // ---------- Progress ----------
 // Levels must be played in order: level i unlocks once level i-1 has been solved. A level
@@ -77,6 +94,8 @@ function markLevelSolved(level) {
 const settingsBtn = document.getElementById("settings-btn");
 const settingsPanel = document.getElementById("settings-panel");
 const hardModeToggle = document.getElementById("hard-mode-toggle");
+const colorModelAdditiveRadio = document.getElementById("color-model-additive");
+const colorModelSubtractiveRadio = document.getElementById("color-model-subtractive");
 const levelSelectEl = document.getElementById("level-select");
 const prevLevelBtn = document.getElementById("prev-level-btn");
 const nextLevelBtn = document.getElementById("next-level-btn");
@@ -96,6 +115,7 @@ function loadLevel(index) {
   const level = levelsList[index];
   GRID_COLS = level.gridCols;
   GRID_ROWS = level.gridRows;
+  currentBlendMode = level.blendMode || "additive";
   TARGET = buildTarget(level);
 
   pieces = level.pieces.map((def) => ({
@@ -181,7 +201,7 @@ function computeWorkspaceColors() {
   const colors = Array.from({ length: GRID_ROWS }, () => Array(GRID_COLS).fill(null));
   for (let row = 0; row < GRID_ROWS; row++) {
     for (let col = 0; col < GRID_COLS; col++) {
-      colors[row][col] = addColors(contributions[row][col]);
+      colors[row][col] = combineColors(contributions[row][col], currentBlendMode);
     }
   }
   return colors;
@@ -219,12 +239,17 @@ function updateHoverPreview() {
     // actually visible while dragging, so it has to show the mixed color, not just the
     // workspace underneath it. Hard mode keeps the positional "you can drop here" outline
     // but withholds the actual resulting color — that's the whole point of hard mode.
+    // (In additive mode this preview is exact — see STATUS.md for why re-mixing an
+    // already-clamped color equals summing from scratch. In subtractive mode it's a very
+    // close approximation only: re-rounding an already-rounded color can be off by a shade
+    // from the true from-scratch product. `computeWorkspaceColors`, which is what actually
+    // decides the win condition, never takes this shortcut — only this live preview does.)
     previewCells.forEach((p, i) => {
       const cellEl = workspaceCellEls[p.row][p.col];
       cellEl.classList.add("hover-ok");
       if (hardMode) return;
       const base = workspaceBaseColors[p.row][p.col];
-      const mixed = addColors(base ? [base, pigment] : [pigment]);
+      const mixed = combineColors(base ? [base, pigment] : [pigment], currentBlendMode);
       cellEl.style.backgroundColor = cssColor(mixed);
       const ghostCellEl = dragState.ghostCellEls[i];
       if (ghostCellEl) ghostCellEl.style.backgroundColor = cssColor(mixed);
@@ -594,6 +619,30 @@ hardModeToggle.addEventListener("change", () => {
     // ignore — setting just won't persist across reloads
   }
   updateHoverPreview(); // harmless no-op if nothing is being dragged right now
+});
+
+function setColorModel(mode) {
+  if (mode === colorModel) return;
+  colorModel = mode;
+  try {
+    localStorage.setItem(COLOR_MODEL_KEY, colorModel);
+  } catch {
+    // ignore — setting just won't persist across reloads
+  }
+  // Switching models switches the whole level set (LEVELS vs PAINT_LEVELS); a dropped/
+  // custom level belonged to whichever set was active when it was loaded, so it's cleared
+  // rather than carried over into a picker for the other color model.
+  levelsList = baseLevels().slice();
+  loadLevel(0);
+}
+
+colorModelAdditiveRadio.checked = colorModel === "additive";
+colorModelSubtractiveRadio.checked = colorModel === "subtractive";
+colorModelAdditiveRadio.addEventListener("change", () => {
+  if (colorModelAdditiveRadio.checked) setColorModel("additive");
+});
+colorModelSubtractiveRadio.addEventListener("change", () => {
+  if (colorModelSubtractiveRadio.checked) setColorModel("subtractive");
 });
 
 // ---------- Drop a level JSON onto the target panel (quick testing, e.g. for levels made

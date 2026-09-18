@@ -37,6 +37,7 @@
 
 const {
   LEVELS,
+  PAINT_LEVELS,
   PIGMENTS,
   buildTarget,
   addColors,
@@ -45,6 +46,8 @@ const {
   rotate90,
   flipHorizontal,
 } = require("./levels.js");
+
+const ALL_LEVELS = [...LEVELS, ...PAINT_LEVELS];
 
 // ---------- Piece orientation enumeration ----------
 function cellsSignature(cells) {
@@ -110,7 +113,12 @@ function computePlacements(level, pieceDef, targetFlat) {
 }
 
 // ---------- Backtracking search ----------
+// Additive and subtractive levels need different pruning: additive sums only ever grow
+// (prune once a channel exceeds target), subtractive products only ever shrink (prune once
+// a channel drops below target) — see the color-model comment in levels.js. Both are
+// monotonic in their own direction, which is what makes either one safe to prune eagerly.
 function solveLevel(level) {
+  const subtractive = level.blendMode === "subtractive";
   const target = buildTarget(level);
   const n = level.gridCols * level.gridRows;
   const targetFlat = new Array(n);
@@ -135,10 +143,16 @@ function solveLevel(level) {
   pieceInfos.sort((a, b) => a.placements.length - b.placements.length);
   const neverPlaceable = pieceInfos.filter((p) => p.placements.length === 0).map((p) => p.id);
 
+  // Additive state: running per-channel sums (integers, exact).
   const sumR = new Int32Array(n);
   const sumG = new Int32Array(n);
   const sumB = new Int32Array(n);
+  // Subtractive state: running per-channel products, as fractions in [0, 1] (floats).
+  const prodR = new Float64Array(n).fill(1);
+  const prodG = new Float64Array(n).fill(1);
+  const prodB = new Float64Array(n).fill(1);
   const touched = new Uint8Array(n);
+  const EPSILON = 1e-9; // float slack for the subtractive prune, never for the final check
 
   const solutions = [];
   let nodesVisited = 0;
@@ -147,6 +161,23 @@ function solveLevel(level) {
   const startTime = process.hrtime.bigint();
 
   function fits(placement, pigment) {
+    if (subtractive) {
+      const fr = pigment.r / 255;
+      const fg = pigment.g / 255;
+      const fb = pigment.b / 255;
+      // The running product is compared against the target's *rounded* channel value, so
+      // the margin has to absorb up to half a unit of rounding slack (see the final Math.
+      // round in isExactMatch/levels.js's multiplyColors) — not just float noise. Without
+      // it, a running product a fraction of a unit below the rounded target gets pruned
+      // even though it's still exactly on track to round correctly once final.
+      for (const idx of placement.indices) {
+        const t = targetFlat[idx];
+        if (t.r > 0 && prodR[idx] * fr < (t.r - 0.5) / 255 - EPSILON) return false;
+        if (t.g > 0 && prodG[idx] * fg < (t.g - 0.5) / 255 - EPSILON) return false;
+        if (t.b > 0 && prodB[idx] * fb < (t.b - 0.5) / 255 - EPSILON) return false;
+      }
+      return true;
+    }
     for (const idx of placement.indices) {
       const t = targetFlat[idx];
       if (t.r < 255 && sumR[idx] + pigment.r > t.r) return false;
@@ -158,25 +189,42 @@ function solveLevel(level) {
 
   function apply(placement, pigment) {
     for (const idx of placement.indices) {
-      sumR[idx] += pigment.r;
-      sumG[idx] += pigment.g;
-      sumB[idx] += pigment.b;
+      if (subtractive) {
+        prodR[idx] *= pigment.r / 255;
+        prodG[idx] *= pigment.g / 255;
+        prodB[idx] *= pigment.b / 255;
+      } else {
+        sumR[idx] += pigment.r;
+        sumG[idx] += pigment.g;
+        sumB[idx] += pigment.b;
+      }
       touched[idx]++;
     }
   }
 
   function undo(placement, pigment) {
     for (const idx of placement.indices) {
-      sumR[idx] -= pigment.r;
-      sumG[idx] -= pigment.g;
-      sumB[idx] -= pigment.b;
+      if (subtractive) {
+        prodR[idx] /= pigment.r / 255;
+        prodG[idx] /= pigment.g / 255;
+        prodB[idx] /= pigment.b / 255;
+      } else {
+        sumR[idx] -= pigment.r;
+        sumG[idx] -= pigment.g;
+        sumB[idx] -= pigment.b;
+      }
       touched[idx]--;
     }
   }
 
   function isExactMatch() {
     for (let idx = 0; idx < n; idx++) {
-      const color = touched[idx] > 0 ? addColors([{ r: sumR[idx], g: sumG[idx], b: sumB[idx] }]) : null;
+      let color = null;
+      if (touched[idx] > 0) {
+        color = subtractive
+          ? { r: Math.round(prodR[idx] * 255), g: Math.round(prodG[idx] * 255), b: Math.round(prodB[idx] * 255) }
+          : { r: Math.min(255, sumR[idx]), g: Math.min(255, sumG[idx]), b: Math.min(255, sumB[idx]) };
+      }
       if (!colorsEqual(color, targetFlat[idx])) return false;
     }
     return true;
@@ -267,10 +315,10 @@ if (typeof module !== "undefined" && module.exports) {
 
 function main() {
   const arg = process.argv[2];
-  let levelsToRun = LEVELS;
+  let levelsToRun = ALL_LEVELS;
   if (arg !== undefined) {
-    const byIndex = LEVELS[Number(arg)];
-    const byId = LEVELS.find((l) => l.id === arg);
+    const byIndex = ALL_LEVELS[Number(arg)];
+    const byId = ALL_LEVELS.find((l) => l.id === arg);
     const level = !Number.isNaN(Number(arg)) ? byIndex : byId;
     if (!level) {
       console.error(`No such level: ${arg}`);
