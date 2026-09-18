@@ -1,6 +1,6 @@
 # Status
 
-Last updated: 2026-09-18 (drag, not click, to send a placed piece back to the tray; footer repo link)
+Last updated: 2026-09-18 (prev/next level buttons)
 
 **Live version:** https://607011.github.io/Overhue/ (GitHub Pages, serves the `main` branch root, rebuilds automatically on every push)
 
@@ -37,6 +37,7 @@ A puzzle where colored polyomino pieces are dragged, rotated, and overlapped on 
 - **Level picker is a `<select>`**: swapped out the wrapping grid of level buttons (fine for 3 levels, unwieldy for 33) for a single dropdown. Locked options are `disabled` with a 🔒 prefix, solved ones get a ✓ prefix, and dropped/custom levels land in their own `<optgroup>`.
 - **Renamed to Overhue**: the GitHub repo moved from `607011/InversePuzzle` to `607011/Overhue` (old URLs redirect automatically), which also moved the GitHub Pages URL. Updated everywhere the old name appeared — page title/heading, docs, the Rust crate (`inverse-puzzle-solver` → `overhue-solver`, including its Rust import paths), and the two `localStorage` keys.
 - **Footer repo link**: a plain "View source on GitHub" link to the repo, `target="_blank" rel="noopener"`.
+- **Prev/next level buttons**: ◀/▶ icon buttons flank the level dropdown. Previous is disabled at level 1; next is disabled at the last level *or* whenever the following level isn't unlocked yet (`isLevelUnlocked(currentLevelIndex + 1)`) — so it can't be used to skip ahead of progression, only to step back and forth across what's already open.
 - **Send a placed piece back to the tray**: drag it from the workspace onto the tray panel and release. First tried as a plain click (no drag) on a placed piece, but that made it too easy to unplace something by accident — a deliberate drag onto the tray requires actual intent, matching how every other move in the game already works. Implemented in `finishDrag`: a grid-sourced drag that doesn't land on a valid cell checks whether the drop point is over the tray panel (`isPointOverTray`, a simple bounding-rect containment check against `trayEl.closest(".panel")` — the whole panel, not just the tight piece tray div, so it doesn't require pixel-perfect aim) — if so, the piece is unplaced; if not (e.g. a near-miss just outside a grid cell), it reverts to its previous position rather than being lost. Only reachable outside Hard mode, via the same `pointerdown` guard that blocks picking a piece up at all when `hardMode` is on.
 
 ### Bugs found and fixed during development

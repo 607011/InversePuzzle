@@ -78,6 +78,8 @@ const settingsBtn = document.getElementById("settings-btn");
 const settingsPanel = document.getElementById("settings-panel");
 const hardModeToggle = document.getElementById("hard-mode-toggle");
 const levelSelectEl = document.getElementById("level-select");
+const prevLevelBtn = document.getElementById("prev-level-btn");
+const nextLevelBtn = document.getElementById("next-level-btn");
 const targetGridEl = document.getElementById("target-grid");
 const workspaceGridEl = document.getElementById("workspace-grid");
 const trayEl = document.getElementById("tray");
@@ -146,6 +148,9 @@ function renderLevelSelect() {
       levelSelectEl.appendChild(option);
     }
   });
+
+  prevLevelBtn.disabled = currentLevelIndex <= 0;
+  nextLevelBtn.disabled = currentLevelIndex >= levelsList.length - 1 || !isLevelUnlocked(currentLevelIndex + 1);
 }
 
 // ---------- Rendering ----------
@@ -560,6 +565,8 @@ rotateBtn.addEventListener("click", () => applyTransform(rotate90));
 flipBtn.addEventListener("click", () => applyTransform(flipHorizontal));
 resetBtn.addEventListener("click", resetLevel);
 levelSelectEl.addEventListener("change", () => loadLevel(Number(levelSelectEl.value)));
+prevLevelBtn.addEventListener("click", () => loadLevel(currentLevelIndex - 1));
+nextLevelBtn.addEventListener("click", () => loadLevel(currentLevelIndex + 1));
 
 // ---------- Settings panel ----------
 function setSettingsPanelOpen(open) {
