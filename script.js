@@ -119,21 +119,46 @@ function cellsForCellsAt(cells, col, row) {
 }
 
 let workspaceCellEls = [];
+let workspaceBaseColors = []; // the real (non-preview) color of each cell, from placed pieces only
 
 function updateHoverPreview() {
   const previewCells =
     dragState && dragState.hoverCell
       ? cellsForCellsAt(dragState.cells, dragState.hoverCell.col, dragState.hoverCell.row)
       : null;
+  const pigment = dragState && PIGMENTS[dragState.piece.color];
+
   for (let row = 0; row < GRID_ROWS; row++) {
     for (let col = 0; col < GRID_COLS; col++) {
       const cellEl = workspaceCellEls[row][col];
       cellEl.classList.remove("hover-ok", "hover-bad");
-      if (previewCells && previewCells.some((p) => p.col === col && p.row === row)) {
-        cellEl.classList.add("hover-ok");
-      }
+      const base = workspaceBaseColors[row][col];
+      cellEl.style.backgroundColor = base ? cssColor(base) : "";
     }
   }
+
+  if (previewCells) {
+    // Show what the color would actually become here, not just "this cell is targeted":
+    // mix the dragged piece's pigment into whatever is already placed underneath. Paint
+    // both the workspace cell AND the ghost cell sitting on top of it — the ghost is what's
+    // actually visible while dragging, so it has to show the mixed color, not just the
+    // workspace underneath it.
+    previewCells.forEach((p, i) => {
+      const cellEl = workspaceCellEls[p.row][p.col];
+      const base = workspaceBaseColors[p.row][p.col];
+      const mixed = addColors(base ? [base, pigment] : [pigment]);
+      cellEl.style.backgroundColor = cssColor(mixed);
+      cellEl.classList.add("hover-ok");
+      const ghostCellEl = dragState.ghostCellEls[i];
+      if (ghostCellEl) ghostCellEl.style.backgroundColor = cssColor(mixed);
+    });
+  } else if (dragState) {
+    // No valid hover: ghost just shows the piece's own color.
+    for (const ghostCellEl of dragState.ghostCellEls) {
+      if (ghostCellEl) ghostCellEl.style.backgroundColor = cssColor(pigment);
+    }
+  }
+
   if (dragState && dragState.ghostEl) {
     dragState.ghostEl.classList.toggle("invalid", !previewCells);
   }
@@ -141,6 +166,7 @@ function updateHoverPreview() {
 
 function renderWorkspaceGrid() {
   const colors = computeWorkspaceColors();
+  workspaceBaseColors = colors;
   workspaceGridEl.style.gridTemplateColumns = `repeat(${GRID_COLS}, ${CELL_SIZE}px)`;
   workspaceGridEl.innerHTML = "";
   workspaceCellEls = Array.from({ length: GRID_ROWS }, () => Array(GRID_COLS).fill(null));
@@ -278,13 +304,17 @@ function renderGhost() {
   ghostEl.style.gridTemplateColumns = `repeat(${size.w}, ${CELL_SIZE}px)`;
   ghostEl.style.gridTemplateRows = `repeat(${size.h}, ${CELL_SIZE}px)`;
   ghostEl.innerHTML = "";
+  // Parallel to `cells`/`previewCells`, so updateHoverPreview can paint each ghost cell
+  // with the color it would actually become, instead of just the piece's own pigment.
+  dragState.ghostCellEls = new Array(cells.length);
   for (let row = 0; row < size.h; row++) {
     for (let col = 0; col < size.w; col++) {
       const cellEl = document.createElement("div");
       cellEl.className = "cell";
-      const occupied = cells.some((c) => c.dx === col && c.dy === row);
-      if (occupied) {
+      const cellIndex = cells.findIndex((c) => c.dx === col && c.dy === row);
+      if (cellIndex !== -1) {
         cellEl.style.backgroundColor = cssColor(PIGMENTS[piece.color]);
+        dragState.ghostCellEls[cellIndex] = cellEl;
       } else {
         cellEl.style.visibility = "hidden";
       }
