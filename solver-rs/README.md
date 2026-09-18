@@ -82,6 +82,19 @@ Example for something trickier, in the color-ambiguity style of Level 2:
 ./target/release/generate --cols 5 --rows 4 --pieces 4 --colors red,green,amber --min-score 5
 ```
 
+### Scaling limits
+
+Keep `--pieces` well under `--cols` × `--rows`. Proving a level has *exactly* one solution gets exponentially harder as pieces overlap more densely on a fixed grid with a small color palette — past a point, many candidates end up with two pieces sharing both shape and color (genuinely, unavoidably interchangeable), which the generator correctly refuses to accept, and can take a long time to determine. Measured on a 6x6 grid with the default 4-color palette and max piece size 4:
+
+| real pieces | attempts needed | time |
+|---|---|---|
+| 8 | 1 | 0.6 ms |
+| 10 | 40 | 131 ms |
+| 12 | 442 | 8.2 s |
+| 14 | gave up (500 attempts) | >15 s |
+
+A generator run is capped (`--attempts`, default 500) and each candidate's validation is separately capped (500,000 search nodes) so a bad combination of flags fails within seconds rather than hanging — but "fails fast" isn't "succeeds fast." If you need more pieces, grow `--colors` alongside them (a bigger palette makes accidental shape+color collisions far less likely) or raise `--cols`/`--rows` to give pieces more room to be distinguishable.
+
 ## Difficulty metrics
 
 There's no single canonical "human difficulty" for this kind of puzzle, so rather than fabricate one number, the solver reports several concrete, cheaply-computed structural stats (see `src/difficulty.rs` for exact definitions and rationale):

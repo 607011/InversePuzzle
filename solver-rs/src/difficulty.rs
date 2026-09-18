@@ -90,7 +90,10 @@ pub fn compute(level: &Level, target: &[Option<Rgb>], piece_infos: &[PieceInfo],
     let sneaky_decoys = piece_infos.iter().filter(|p| p.is_decoy && !p.locally_plausible.is_empty()).count();
 
     let solution_count = result.solutions.len();
-    let (red_herrings, score) = if solution_count == 1 {
+    // A truncated search (see SolveResult::truncated) never gets a score, even if it
+    // happened to find exactly one solution before giving up — that count isn't proven
+    // unique, just not-yet-disproven.
+    let (red_herrings, score) = if solution_count == 1 && !result.truncated {
         let used = result.solutions[0].len();
         let red_herrings = total_locally_plausible_placements as i64 - used as i64;
         let duplicate_colors = count_duplicate_color_regions(target, level.grid_cols, level.grid_rows);

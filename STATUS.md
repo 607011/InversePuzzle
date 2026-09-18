@@ -1,6 +1,6 @@
 # Status
 
-Last updated: 2026-09-18 (drag-and-drop level JSON import for testing)
+Last updated: 2026-09-18 (fixed an exponential blowup in both solvers at high piece counts)
 
 **Live version:** https://607011.github.io/InversePuzzle/ (GitHub Pages, serves the `main` branch root, rebuilds automatically on every push)
 
@@ -82,6 +82,23 @@ No single canonical "human difficulty" number exists for this puzzle type, so ra
 
 A level with zero or more than one solution gets no score — that's a design bug to fix, not a difficulty level to rate.
 
+### Bug found: exponential blowup at high piece counts
+
+`./target/release/generate --cols 6 --rows 6 --pieces 17 --decoys 2` hung. Root cause: both solvers offered "leave this piece unplaced" as a legal branch for *every* piece, decoys and real pieces alike. That's needed for decoys, but for a non-decoy piece it's dead weight — `buildTarget` sums exactly the non-decoy pieces into the target, so in any well-formed level a non-decoy piece skipping placement can never produce an exact match. Offering the branch anyway doubled the search's branching factor at every one of N non-decoy pieces for zero possible benefit — with 17 real pieces that's up to 2^17 times more search tree than necessary.
+
+Fixed in both `solver.js` and `solver-rs/src/solver.rs`: the "leave unplaced" branch is now only tried when `piece.isDecoy`/`piece.is_decoy` is true. Also added a hard node-count safety cap to the Rust solver (`SolveResult::truncated`, default 20M, tighter at 500k during generation) so a genuinely pathological input fails fast and honestly instead of running indefinitely — the generator treats a truncated validation as a rejection (same as finding 0 or 2+ solutions), and `difficulty::compute` refuses to score a truncated result even if it happened to see exactly one solution before giving up.
+
+After the fix, `--pieces 17 --decoys 2` on a 6x6 grid no longer hangs — it now fails fast(ish) and *honestly* after exhausting its retry budget, because 17 pieces sharing only 4 possible colors on a 36-cell grid makes duplicate/interchangeable pieces (same shape *and* color) likely, and the generator only ever accepts a level it can prove has exactly one solution. Measured scaling on a 6x6 grid with default settings (4 colors, max piece size 4):
+
+| real pieces | attempts to succeed | time |
+|---|---|---|
+| 8 | 1 | 0.6 ms |
+| 10 | 40 | 131 ms |
+| 12 | 442 | 8.2 s |
+| 14 | (gave up) | >15 s |
+
+This is no longer an implementation bug — it's the genuine cost of *proving* uniqueness exhaustively as overlap density grows, and it would eventually hit the same wall in any language. Practical guidance until/unless the generator grows a smarter acceptance criterion (see "Next steps"): keep piece count well under the grid's cell count, and/or grow the color palette alongside piece count to reduce collision odds.
+
 ## Open questions / decisions already made
 
 - Transform freedom: rotation **and** flipping are both allowed (chosen over move-only or rotate-only).
@@ -110,3 +127,4 @@ Discussed as a deliberate alternative to just scaling grid size / piece count, w
 - [ ] Consider having a solver (either implementation) double as an in-game/CI sanity check (e.g. a script that fails CI if any level in levels.js has zero or more-than-expected solutions), rather than only a manually-run dev tool.
 - [ ] Tune `difficulty.rs`'s score weights against real playtesting feedback once there are enough levels to compare against actual "this felt harder than that" judgments.
 - [ ] Consider extending the generator with idea 2 (multiple non-orthogonal pigments) or idea 4 (order-dependent blend-mode pieces) as explicit generation strategies, not just random shape/color/position.
+- [ ] For higher piece counts, consider a cheaper acceptance criterion than exhaustive-proof-of-uniqueness — e.g. reject a candidate outright if any two pieces share both shape and color (the likely cause of non-uniqueness at scale, per the blowup writeup above) before ever calling the full solver, and/or let the generator report "probably unique, not exhaustively proven" for large levels instead of only ever accepting exhaustively-proven ones.

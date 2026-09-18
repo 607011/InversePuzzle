@@ -123,12 +123,15 @@ function solveLevel(level) {
   const pieceInfos = level.pieces.map((def) => ({
     id: def.id,
     pigment: PIGMENTS[def.color],
+    isDecoy: !!def.decoy,
     placements: computePlacements(level, def, targetFlat),
   }));
 
   // Most-constrained-first: fail fast on the piece with the fewest options. "Leave
-  // unplaced" is always available (see search() below), so no piece ever makes the level
-  // outright unsolvable by itself — a piece with zero real placements just always sits out.
+  // unplaced" is available only for decoys (see search() below) — a non-decoy piece
+  // contributes to the target by construction (buildTarget sums exactly the non-decoy
+  // pieces), so in a well-formed level it can never be validly skipped, and a piece with
+  // zero real placements there would mean the level is actually broken, not just decoy-shy.
   pieceInfos.sort((a, b) => a.placements.length - b.placements.length);
   const neverPlaceable = pieceInfos.filter((p) => p.placements.length === 0).map((p) => p.id);
 
@@ -192,9 +195,14 @@ function solveLevel(level) {
 
     const piece = pieceInfos[pieceIndex];
 
-    // Option 1: leave this piece unplaced entirely (always legal, contributes nothing).
-    search(pieceIndex + 1, chosen);
-    if (solutions.length >= MAX_SOLUTIONS) return;
+    // Option 1: leave this piece unplaced. Only legal for a decoy (see the sort comment
+    // above) — restricting this instead of offering it unconditionally to every piece
+    // matters a lot at scale: with N non-decoy pieces, an unconditional skip option
+    // doubles the branching factor at every one of those N levels for no possible benefit.
+    if (piece.isDecoy) {
+      search(pieceIndex + 1, chosen);
+      if (solutions.length >= MAX_SOLUTIONS) return;
+    }
 
     // Option 2: place it at one of its precomputed valid placements.
     for (const placement of piece.placements) {

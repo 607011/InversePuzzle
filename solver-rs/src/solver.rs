@@ -43,6 +43,12 @@ pub struct SolveResult {
     pub never_placeable: Vec<String>,
     pub all_piece_ids: Vec<String>,
     pub placement_counts: Vec<(String, usize)>,
+    /// True if the search hit `max_nodes` and gave up early. Treat `solutions` as a lower
+    /// bound, not the true count, when this is set — a defensive cap for pathological
+    /// inputs (e.g. many pieces sharing both color and shape, so the search legitimately
+    /// has to explore a huge number of interchangeable-looking placements), not something
+    /// that should ever trigger on the hand-built levels or typically-sized generated ones.
+    pub truncated: bool,
 }
 
 fn cells_signature(cells: &[Cell]) -> Vec<(i32, i32)> {
@@ -154,6 +160,8 @@ struct Search<'a> {
     solutions: Vec<Vec<ChosenPiece>>,
     nodes_visited: u64,
     max_solutions: usize,
+    max_nodes: u64,
+    truncated: bool,
 }
 
 impl<'a> Search<'a> {
@@ -211,6 +219,10 @@ impl<'a> Search<'a> {
 
     fn search(&mut self, piece_index: usize, chosen: &mut Vec<ChosenPiece>) {
         self.nodes_visited += 1;
+        if self.nodes_visited >= self.max_nodes {
+            self.truncated = true;
+            return;
+        }
         if self.solutions.len() >= self.max_solutions {
             return;
         }
@@ -221,14 +233,24 @@ impl<'a> Search<'a> {
             return;
         }
 
-        // Option 1: leave this piece unplaced (always legal; see decoy pieces in Level 3).
-        self.search(piece_index + 1, chosen);
-        if self.solutions.len() >= self.max_solutions {
-            return;
+        let piece = &self.piece_infos[piece_index];
+
+        // Option 1: leave this piece unplaced. Only ever legal for a decoy — buildTarget
+        // sums every non-decoy piece into the target, so in a well-formed level a
+        // non-decoy piece skipping placement can never produce an exact match anyway.
+        // Restricting the branch to decoys (instead of offering it unconditionally, which
+        // is what a truly generic solver would do) matters a lot at scale: with N
+        // non-decoy pieces, an unconditional skip option doubles the branching factor at
+        // every one of those N levels for no possible benefit, which is exactly what made
+        // large generated levels (dozens of real pieces) effectively hang.
+        if piece.is_decoy {
+            self.search(piece_index + 1, chosen);
+            if self.solutions.len() >= self.max_solutions || self.truncated {
+                return;
+            }
         }
 
         // Option 2: place it at one of its precomputed valid placements.
-        let piece = &self.piece_infos[piece_index];
         for placement in &piece.placements {
             if !self.fits(placement, &piece.pigment) {
                 continue;
@@ -238,14 +260,30 @@ impl<'a> Search<'a> {
             self.search(piece_index + 1, chosen);
             chosen.pop();
             self.undo(placement, &piece.pigment);
-            if self.solutions.len() >= self.max_solutions {
+            if self.solutions.len() >= self.max_solutions || self.truncated {
                 return;
             }
         }
     }
 }
 
+/// A generous default: high enough to never bite the hand-built levels or typically-sized
+/// generated ones, low enough that a pathological input (see `SolveResult::truncated`)
+/// gives up in a few seconds rather than running indefinitely.
+pub const DEFAULT_MAX_NODES: u64 = 20_000_000;
+
 pub fn solve_with_piece_infos(piece_infos: &[PieceInfo], target: &[Option<Rgb>], grid_cols: i32, grid_rows: i32, max_solutions: usize) -> SolveResult {
+    solve_with_piece_infos_capped(piece_infos, target, grid_cols, grid_rows, max_solutions, DEFAULT_MAX_NODES)
+}
+
+pub fn solve_with_piece_infos_capped(
+    piece_infos: &[PieceInfo],
+    target: &[Option<Rgb>],
+    grid_cols: i32,
+    grid_rows: i32,
+    max_solutions: usize,
+    max_nodes: u64,
+) -> SolveResult {
     let n = (grid_cols * grid_rows) as usize;
 
     let never_placeable: Vec<String> = piece_infos.iter().filter(|p| p.placements.is_empty()).map(|p| p.id.clone()).collect();
@@ -262,6 +300,8 @@ pub fn solve_with_piece_infos(piece_infos: &[PieceInfo], target: &[Option<Rgb>],
         solutions: Vec::new(),
         nodes_visited: 0,
         max_solutions,
+        max_nodes,
+        truncated: false,
     };
 
     let start = Instant::now();
@@ -276,6 +316,7 @@ pub fn solve_with_piece_infos(piece_infos: &[PieceInfo], target: &[Option<Rgb>],
         never_placeable,
         all_piece_ids,
         placement_counts,
+        truncated: search.truncated,
     }
 }
 

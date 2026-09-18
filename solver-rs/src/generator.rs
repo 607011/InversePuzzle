@@ -13,7 +13,7 @@
 //! microseconds, not seconds.
 
 use crate::level::{bounding_size, build_target, normalize, Cell, Level, Origin, PieceDef, Rgb, StartTransform};
-use crate::solver::{build_piece_infos, compute_placements, fits_in_isolation, solve_with_piece_infos};
+use crate::solver::{build_piece_infos, compute_placements, fits_in_isolation, solve_with_piece_infos_capped};
 use crate::difficulty::{self, DifficultyMetrics};
 use rand::seq::SliceRandom;
 use rand::Rng;
@@ -164,9 +164,15 @@ pub fn generate(
         let piece_infos = build_piece_infos(&level, pigments, &target);
         // A handful of extra solutions (not just 1) would still tell us this candidate is
         // bad; capping at 5 keeps a pathological candidate from wasting time enumerating
-        // hundreds of solutions we're going to reject anyway.
-        let result = solve_with_piece_infos(&piece_infos, &target, level.grid_cols, level.grid_rows, 5);
-        if result.solutions.len() != 1 {
+        // hundreds of solutions we're going to reject anyway. Node count is capped much
+        // lower than the default here too: during generation we're going to throw away and
+        // retry a bad candidate regardless, so there's no point letting validation run for
+        // seconds before giving up on one candidate — better to fail this one fast and try
+        // a fresh one. A `truncated` result (couldn't confirm uniqueness within the budget)
+        // is treated as a rejection, same as finding 0 or 2+ solutions: it might still be a
+        // fine level, but this generator only ever accepts levels it could *prove* unique.
+        let result = solve_with_piece_infos_capped(&piece_infos, &target, level.grid_cols, level.grid_rows, 5, 500_000);
+        if result.truncated || result.solutions.len() != 1 {
             continue;
         }
         let metrics = difficulty::compute(&level, &target, &piece_infos, &result);

@@ -55,6 +55,9 @@ fn main() {
             println!("  note: \"{id}\" has zero valid placements anywhere ({tag})");
         }
         println!("  search nodes visited: {}", result.nodes_visited);
+        if result.truncated {
+            println!("  WARNING: search was truncated (hit the node budget) — solution count below is a LOWER BOUND, not confirmed.");
+        }
         println!("  time: {:.3} ms", result.elapsed.as_secs_f64() * 1000.0);
         println!(
             "  solutions found: {}{}",
