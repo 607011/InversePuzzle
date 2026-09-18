@@ -10,6 +10,7 @@
 //!     --decoys N          decoy piece count (default 0)
 //!     --max-size N        largest allowed piece, in cells (default 4)
 //!     --colors a,b,c      pigment names to sample from (default red,green,blue,amber)
+//!     --paint             generate a Paint-mode (subtractive) level instead of additive
 //!     --min-score N       reject candidates scoring below this
 //!     --max-score N       reject candidates scoring above this
 //!     --attempts N        max whole-level regeneration attempts (default 500)
@@ -30,11 +31,13 @@ fn main() {
     let mut decoy_count = 0usize;
     let mut max_size = 4usize;
     let mut colors: Vec<String> = vec!["red".into(), "green".into(), "blue".into(), "amber".into()];
+    let mut colors_explicit = false;
     let mut min_score: Option<f64> = None;
     let mut max_score: Option<f64> = None;
     let mut max_attempts = 500usize;
     let mut pigments_path = "../levels.json".to_string();
     let mut out_path = "generated-level.json".to_string();
+    let mut paint = false;
 
     let mut args = env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -45,12 +48,16 @@ fn main() {
             "--pieces" => piece_count = next().parse().expect("--pieces must be an integer"),
             "--decoys" => decoy_count = next().parse().expect("--decoys must be an integer"),
             "--max-size" => max_size = next().parse().expect("--max-size must be an integer"),
-            "--colors" => colors = next().split(',').map(|s| s.trim().to_string()).collect(),
+            "--colors" => {
+                colors = next().split(',').map(|s| s.trim().to_string()).collect();
+                colors_explicit = true;
+            }
             "--min-score" => min_score = Some(next().parse().expect("--min-score must be a number")),
             "--max-score" => max_score = Some(next().parse().expect("--max-score must be a number")),
             "--attempts" => max_attempts = next().parse().expect("--attempts must be an integer"),
             "--pigments" => pigments_path = next(),
             "--out" => out_path = next(),
+            "--paint" => paint = true,
             other => {
                 eprintln!("Unknown option: {other}");
                 std::process::exit(1);
@@ -64,6 +71,13 @@ fn main() {
     });
     let data: LevelsFile = serde_json::from_str(&text).expect("invalid levels.json");
     let pigments: HashMap<String, _> = data.pigments;
+
+    if paint && !colors_explicit {
+        // Amber is tuned for additive (light) mixing — see levels.js's PIGMENTS comment —
+        // so default Paint-mode generation to the primaries actually used by the shipped
+        // Paint levels instead.
+        colors = vec!["red".into(), "green".into(), "blue".into()];
+    }
 
     for c in &colors {
         if !pigments.contains_key(c) {
@@ -80,6 +94,7 @@ fn main() {
         max_piece_size: max_size,
         colors,
         max_attempts,
+        blend_mode: if paint { Some("subtractive".to_string()) } else { None },
     };
 
     let start = Instant::now();

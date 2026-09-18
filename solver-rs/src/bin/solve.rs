@@ -43,12 +43,12 @@ fn main() {
     for level in levels {
         println!("\n=== {} ({}) — grid {}x{} ===", level.name, level.id, level.grid_cols, level.grid_rows);
         let target = build_target(level, &data.pigments);
-        let piece_infos = build_piece_infos(level, &data.pigments, &target);
+        let (piece_infos, pigment_list) = build_piece_infos(level, &data.pigments, &target);
 
         let placement_summary: Vec<String> = piece_infos.iter().map(|p| format!("{}={}", p.id, p.placements.len())).collect();
         println!("  placements/piece: {}", placement_summary.join(", "));
 
-        let result = solve_with_piece_infos(&piece_infos, &target, level.grid_cols, level.grid_rows, 1000);
+        let result = solve_with_piece_infos(&piece_infos, &pigment_list, level.is_subtractive(), &target, level.grid_cols, level.grid_rows, 1000);
         for id in &result.never_placeable {
             let is_decoy = level.pieces.iter().find(|p| &p.id == id).map(|p| p.decoy).unwrap_or(false);
             let tag = if is_decoy { "expected, marked decoy" } else { "UNEXPECTED — check levels.js" };

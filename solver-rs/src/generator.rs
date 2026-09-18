@@ -31,6 +31,9 @@ pub struct GeneratorConfig {
     /// Bound on whole-level regeneration attempts (a level is rejected and retried if it
     /// isn't uniquely solvable, or doesn't meet the requested difficulty band).
     pub max_attempts: usize,
+    /// `Some("subtractive")` for Paint-mode levels, `None`/`Some("additive")` otherwise —
+    /// stored on the generated `Level` and threaded into every solver call below.
+    pub blend_mode: Option<String>,
 }
 
 pub struct GeneratedLevel {
@@ -104,8 +107,10 @@ fn generate_candidate(rng: &mut impl Rng, cfg: &GeneratorConfig, pigments: &Hash
         name: "Generated level".into(),
         grid_cols: cfg.grid_cols,
         grid_rows: cfg.grid_rows,
+        blend_mode: cfg.blend_mode.clone(),
         pieces,
     };
+    let subtractive = level.is_subtractive();
     let target = build_target(&level, pigments);
 
     for i in 0..cfg.decoy_count {
@@ -126,7 +131,7 @@ fn generate_candidate(rng: &mut impl Rng, cfg: &GeneratorConfig, pigments: &Hash
             };
             let pigment = *pigments.get(&color)?;
             let placements = compute_placements(cfg.grid_cols, cfg.grid_rows, &cells, &target);
-            let plausible = placements.iter().any(|p| fits_in_isolation(p, &pigment, &target));
+            let plausible = placements.iter().any(|p| fits_in_isolation(p, &pigment, &target, subtractive));
             if !plausible {
                 placed_decoy = Some(PieceDef {
                     id: format!("decoy-{}", i + 1),
@@ -161,7 +166,7 @@ pub fn generate(
             continue;
         };
         let target = build_target(&level, pigments);
-        let piece_infos = build_piece_infos(&level, pigments, &target);
+        let (piece_infos, pigment_list) = build_piece_infos(&level, pigments, &target);
         // A handful of extra solutions (not just 1) would still tell us this candidate is
         // bad; capping at 5 keeps a pathological candidate from wasting time enumerating
         // hundreds of solutions we're going to reject anyway. Node count is capped much
@@ -171,7 +176,16 @@ pub fn generate(
         // a fresh one. A `truncated` result (couldn't confirm uniqueness within the budget)
         // is treated as a rejection, same as finding 0 or 2+ solutions: it might still be a
         // fine level, but this generator only ever accepts levels it could *prove* unique.
-        let result = solve_with_piece_infos_capped(&piece_infos, &target, level.grid_cols, level.grid_rows, 5, 500_000);
+        let result = solve_with_piece_infos_capped(
+            &piece_infos,
+            &pigment_list,
+            level.is_subtractive(),
+            &target,
+            level.grid_cols,
+            level.grid_rows,
+            5,
+            500_000,
+        );
         if result.truncated || result.solutions.len() != 1 {
             continue;
         }

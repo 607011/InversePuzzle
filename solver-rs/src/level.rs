@@ -51,7 +51,17 @@ pub struct Level {
     pub name: String,
     pub grid_cols: i32,
     pub grid_rows: i32,
+    /// "additive" (light-like, the default — see add_colors) or "subtractive" (paint-like —
+    /// see multiply_colors). Absent/omitted means additive, matching levels.js.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub blend_mode: Option<String>,
     pub pieces: Vec<PieceDef>,
+}
+
+impl Level {
+    pub fn is_subtractive(&self) -> bool {
+        self.blend_mode.as_deref() == Some("subtractive")
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -61,8 +71,9 @@ pub struct LevelsFile {
 }
 
 // ---------- Color model ----------
-// Each base pigment is added channel-wise and clamped to 0-255 ("light" mixing) — must
-// match `addColors` in levels.js exactly.
+// Two mixing rules — must match levels.js's addColors/multiplyColors/combineColors exactly.
+//
+// "additive" (light mixing): channel-wise sum, clamped to 0-255.
 pub fn add_colors(colors: &[Rgb]) -> Option<Rgb> {
     if colors.is_empty() {
         return None;
@@ -80,6 +91,45 @@ pub fn add_colors(colors: &[Rgb]) -> Option<Rgb> {
         g: g.min(255),
         b: b.min(255),
     })
+}
+
+// "subtractive" (paint/ink mixing): overlapping *different* pigments multiply their
+// channel fractions together. Crucially idempotent for the *same* pigment — painting a
+// color over itself changes nothing (real paint doesn't get darker with every identical
+// coat), so this dedupes by exact color identity before multiplying. Plain multiplication
+// alone isn't idempotent (x*x != x), which was a real bug caught by a playtester: dedupe
+// first, or "red mixed with red" quietly comes out darker instead of staying red.
+pub fn multiply_colors(colors: &[Rgb]) -> Option<Rgb> {
+    if colors.is_empty() {
+        return None;
+    }
+    let mut distinct: Vec<Rgb> = Vec::new();
+    for c in colors {
+        if !distinct.iter().any(|d| d.r == c.r && d.g == c.g && d.b == c.b) {
+            distinct.push(*c);
+        }
+    }
+    let mut r = 1.0f64;
+    let mut g = 1.0f64;
+    let mut b = 1.0f64;
+    for c in &distinct {
+        r *= c.r as f64 / 255.0;
+        g *= c.g as f64 / 255.0;
+        b *= c.b as f64 / 255.0;
+    }
+    Some(Rgb {
+        r: (r * 255.0).round() as i32,
+        g: (g * 255.0).round() as i32,
+        b: (b * 255.0).round() as i32,
+    })
+}
+
+pub fn combine_colors(colors: &[Rgb], blend_mode: Option<&str>) -> Option<Rgb> {
+    if blend_mode == Some("subtractive") {
+        multiply_colors(colors)
+    } else {
+        add_colors(colors)
+    }
 }
 
 // ---------- Piece transforms ----------
@@ -148,5 +198,6 @@ pub fn build_target(level: &Level, pigments: &HashMap<String, Rgb>) -> Vec<Optio
             contributions[idx].push(pigment);
         }
     }
-    contributions.iter().map(|c| add_colors(c)).collect()
+    let blend_mode = level.blend_mode.as_deref();
+    contributions.iter().map(|c| combine_colors(c, blend_mode)).collect()
 }

@@ -1,6 +1,6 @@
 # overhue-solver (Rust)
 
-A dev-only Rust port of `../solver.js`, plus a level **generator**. Never loaded by the game — this exists purely for level design/validation speed. `../levels.js` remains the single source of truth for what actually ships; this crate reads/writes the JSON schema produced by `../export-levels.js`.
+A dev-only Rust port of `../solver.js`, plus a level **generator**. Never loaded by the game — this exists purely for level design/validation speed. `../levels.js` remains the single source of truth for what actually ships; this crate reads/writes the JSON schema produced by `../export-levels.js`. Supports both of `levels.js`'s blend modes — additive (Light) and subtractive (Paint), including the latter's idempotence rule (the same pigment painted over itself must stay unchanged, not get darker) — via each level's `blendMode` field.
 
 ## Build
 
@@ -51,7 +51,8 @@ cd solver-rs
 | `--pieces` | number of real pieces | 3 |
 | `--decoys` | number of decoy pieces | 0 |
 | `--max-size` | largest piece, in cells | 4 |
-| `--colors` | pigment palette, comma-separated | `red,green,blue,amber` |
+| `--colors` | pigment palette, comma-separated | `red,green,blue,amber` (`red,green,blue` if `--paint` and `--colors` isn't given — amber is additive-specific, see `AMBER` in `levels.js`) |
+| `--paint` | generate a Paint-mode (subtractive) level instead of additive | off |
 | `--min-score` / `--max-score` | difficulty band to require | unbounded |
 | `--attempts` | max whole-level regeneration attempts | 500 |
 | `--out` | output path | `generated-level.json` |

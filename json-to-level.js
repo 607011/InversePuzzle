@@ -37,11 +37,13 @@ function pieceLiteral(p) {
   return `  {\n    ${lines.join(",\n    ")},\n  }`;
 }
 
+const blendModeLine = level.blendMode && level.blendMode !== "additive" ? `\n  blendMode: ${JSON.stringify(level.blendMode)},` : "";
+
 const out = `{
   id: ${JSON.stringify(level.id)},
   name: ${JSON.stringify(level.name)},
   gridCols: ${level.gridCols},
-  gridRows: ${level.gridRows},
+  gridRows: ${level.gridRows},${blendModeLine}
   pieces: [
 ${level.pieces.map(pieceLiteral).join(",\n")}
   ],
