@@ -16,7 +16,8 @@ A puzzle concept where you overlap colored polyomino pieces to reconstruct a tar
 8. Not every piece has to be used — some levels include pieces that never belong anywhere.
 9. The ☰ menu has a "Hard mode": no live color preview, and pieces can't be picked back up once dropped.
 10. Drag a level JSON file onto the Target panel to try it out — either one produced by [solver-rs](solver-rs)'s generator, or a full `levels.json` export ([export-levels.js](export-levels.js)). Loaded levels show up as dashed "custom" entries in the level picker; nothing is written back to `levels.js` — this is just for quick testing.
-11. The ☰ menu also has a "Color model" switch: **Light** (additive, the default — red + green = yellow, and stacking the same color on itself gets brighter) or **Paint** (subtractive — red + green = a dark olive, but stacking the *same* color on itself changes nothing, just like real paint). Each mode has its own separate level set and its own progression.
+11. The ☰ menu also has a "Color model" switch: **Light** (additive, the default — red + green = yellow, and stacking the same color on itself gets brighter) or **Paint** (subtractive — red + green = a dark olive, but stacking the *same* color on itself changes nothing, just like real paint), or **Light (colorblind-safe)** (same additive mixing on a blue/orange/purple palette for red-green color vision deficiency). Each mode has its own separate level set and its own progression.
+12. **Ctrl+Z** undoes and **Ctrl+Y** (or Ctrl+Shift+Z; ⌘ on macOS) redoes placing, moving, unplacing, and rotating/flipping a tray piece. History resets when a level loads, and undo/redo is disabled in Hard mode (where picking a placed piece back up isn't allowed).
 
 ## Tech
 
@@ -49,6 +50,6 @@ It reports every way to place some or all pieces (across all rotations/flips and
 
 30 additive ("Light") levels, all generated with `solver-rs` and sorted by their actual computed difficulty score into a monotonic ramp, cross-validated by both solvers to have exactly one solution.
 
-Plus 4 subtractive ("Paint") levels — added after real playtester feedback that additive mixing doesn't match how paint actually behaves (see STATUS.md) — hand-built and validated with `solver.js`; `solver-rs` doesn't support this mode yet.
+Plus 30 additive levels on a colorblind-safe blue/orange/purple palette ("Light (colorblind-safe)" in the ☰ menu), and 30 subtractive ("Paint") levels — added after real playtester feedback that additive mixing doesn't match how paint actually behaves (see STATUS.md) — generated and cross-validated the same way, once `solver-rs` was taught the subtractive blend rule (including its idempotence quirk: painting the same pigment over itself twice must stay exactly that pigment, not get darker).
 
 See [STATUS.md](STATUS.md) for a detailed log of what's done and what's planned.
