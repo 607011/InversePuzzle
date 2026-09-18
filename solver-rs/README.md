@@ -22,22 +22,65 @@ Reports solution count, timing, search-node count, and a difficulty breakdown (s
 
 ## Generate
 
+Builds a level *constructively* — random pieces placed at random positions, with the target derived from that placement — rather than by searching backwards from a random target (which would be a genuinely hard combinatorial problem; see the design discussion in `../STATUS.md`). The only search involved is bounded and cheap: confirming each decoy has zero plausible placements, and confirming the assembled level has exactly one real solution via the full solver, retrying with a fresh random candidate (up to `--attempts`, default 500) if not. Typical runs take well under a millisecond.
+
+**1. Build (once)**
+
 ```bash
+cd solver-rs
+cargo build --release
+```
+
+**2. Export pigments** (the generator reads the current colors straight from `levels.js`)
+
+```bash
+cd ..
+node export-levels.js
+```
+
+**3. Generate a level**
+
+```bash
+cd solver-rs
 ./target/release/generate --cols 4 --rows 4 --pieces 3 --decoys 1
 ```
 
-Builds a level *constructively* — random pieces placed at random positions, with the target derived from that placement — rather than by searching backwards from a random target (which would be a genuinely hard combinatorial problem; see the design discussion in `../STATUS.md`). The only search involved is bounded and cheap: confirming each decoy has zero plausible placements, and confirming the assembled level has exactly one real solution via the full solver, retrying with a fresh random candidate (up to `--attempts`, default 500) if not. Typical runs take well under a millisecond.
+| Flag | Meaning | Default |
+|---|---|---|
+| `--cols`, `--rows` | grid size | 4, 3 |
+| `--pieces` | number of real pieces | 3 |
+| `--decoys` | number of decoy pieces | 0 |
+| `--max-size` | largest piece, in cells | 4 |
+| `--colors` | pigment palette, comma-separated | `red,green,blue,amber` |
+| `--min-score` / `--max-score` | difficulty band to require | unbounded |
+| `--attempts` | max whole-level regeneration attempts | 500 |
+| `--out` | output path | `generated-level.json` |
 
-Key options: `--cols`, `--rows`, `--pieces`, `--decoys`, `--max-size` (largest piece, in cells), `--colors` (comma-separated pigment names), `--min-score`/`--max-score` (reject candidates outside a difficulty band), `--out` (output path, default `generated-level.json`).
+The console output already shows a difficulty report (attempts, timing, score, decoys, red herrings) — see "Difficulty metrics" below.
 
-Writes the result as JSON (one level object). Turn it into a levels.js-ready snippet with:
+**4. Bring it into the game**
 
 ```bash
 cd ..
 node json-to-level.js solver-rs/generated-level.json
 ```
 
-...then paste the printed object into `LEVELS` in `levels.js` (after giving it a real `id`/`name`) and re-run `node export-levels.js && cargo run --release --bin solve` from `solver-rs/` to confirm it still checks out from the canonical source.
+This prints a ready-made JS object. Paste it into `LEVELS` in `levels.js` (give it a real `id`/`name` first).
+
+**5. Double-check** (recommended before committing)
+
+```bash
+node export-levels.js
+cd solver-rs && ./target/release/solve
+```
+
+Confirms the new level, now read straight from `levels.js` again, still has exactly one solution.
+
+Example for something trickier, in the color-ambiguity style of Level 2:
+
+```bash
+./target/release/generate --cols 5 --rows 4 --pieces 4 --colors red,green,amber --min-score 5
+```
 
 ## Difficulty metrics
 
