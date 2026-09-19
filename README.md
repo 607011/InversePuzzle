@@ -1,5 +1,7 @@
 # Overhue
 
+<img width="364" height="319" alt="Overhue sample target" src="https://github.com/user-attachments/assets/a9478896-9574-4f69-a7cc-54216c25c99b" />
+
 **Play the latest version:** https://607011.github.io/Overhue/
 
 A puzzle concept where you overlap colored polyomino pieces to reconstruct a target pattern. Colors mix where pieces overlap — **additively** like light (Red + Green = Yellow; the same color stacked on itself gets brighter) by default, or **subtractively** like paint (Red + Green = a dark olive; the same color stacked on itself stays exactly the same, since painting a color over itself doesn't change anything) in Paint mode. The twist: you work backward from the target — figuring out which pieces, in which orientation and position, combine to produce exactly the colors and shape shown.
